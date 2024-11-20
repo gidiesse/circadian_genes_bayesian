@@ -208,6 +208,18 @@ int main(){
     const size_t b1 = 0.0005;
     const size_t epsilon = 1e-3;
     const size_t prop = 1.00;
+    // Define hyperparameter values
+    const size_t as = 1;
+    const size_t bs = 0.5;                           // Gamma hyperparameters for residual precision (true value res variance = 1 for every i)
+    const size_t df = 3;                                     // Gamma hyperparameters for t_{ij}
+    const size_t ad1 = 2.1;
+    const size_t bd1 = 1;                         // Gamma hyperparameters for delta_1
+    const size_t ad2 = 3.1;
+    const size_t bd2 = 1;                 // gamma hyperparameters delta_h, h >= 2
+    const size_t adf = 1;
+    const size_t bdf = 1;                           // Gamma hyperparameters for ad1 and ad2 or df
+
+//initial values
 }
 
 
