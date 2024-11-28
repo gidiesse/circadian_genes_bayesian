@@ -201,17 +201,17 @@ int main(){
     const size_t nrun = 50;
     const size_t burn = 20;
     const size_t thin = 5;
-    const size_t sp = (nrun - burn)/thin;
-    const size_t k = 5;
+    const size_t sp = (nrun - burn)/thin; //Number of posterior samples
+    const size_t k = 5;  // Number of factors to start with (for now)
 
     const size_t b0 = 1;
     const size_t b1 = 0.0005;
-    const size_t epsilon = 1e-3;
-    const size_t prop = 1.00;
+    const size_t epsilon = 1e-3; // Threshold limit
+    const size_t prop = 1.00; //Proportion of redundant elements within columns
     // Define hyperparameter values
     const size_t as = 1;
     const size_t bs = 0.5;                           // Gamma hyperparameters for residual precision (true value res variance = 1 for every i)
-    const size_t df = 3;                                     // Gamma hyperparameters for t_{ij}
+    const size_t df = 3;                                     // Gamma hyperparameters for t_{ij} ?? dubbio non sarebbe di phi
     const size_t ad1 = 2.1;
     const size_t bd1 = 1;                         // Gamma hyperparameters for delta_1
     const size_t ad2 = 3.1;
@@ -220,6 +220,17 @@ int main(){
     const size_t bdf = 1;                           // Gamma hyperparameters for ad1 and ad2 or df
 
 //initial values
+    std::gamma_distribution<double> gamma_dist(as, 1.0 / bs);
+    std::vector<double> sig(p);
+    for (int i = 0; i < p; ++i) {
+        sig[i] = gamma_dist(generator);
+    }
+    std::vector<int> odd;
+    std::vector<int> even;
+    for (size_t i=1;i<=q;i++){
+        odd.push_back(2*i-1);
+        even.push_back(2*i);
+    }
 }
 
 
