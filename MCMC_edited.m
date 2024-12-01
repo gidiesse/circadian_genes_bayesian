@@ -43,7 +43,7 @@ k = 5;                                      % Number of factors to start with (f
 
 b0 = 1; b1 = 0.0005;                        %G parameters for exponential - assumed to be arbitrary
 epsilon = 1e-3;                             % Threshold limit
-prop = 1.00;                                % Proportion of redundant elements within columns - %G ??
+prop = 1.00;                                % Proportion of redundant elements within columns
 
 % % --- Define hyperparameter values --- % %
 as = 1; bs = 0.5;                           % Gamma hyperparameters for residual precision (true value res variance = 1 for every i)
@@ -134,7 +134,7 @@ for i = 1:nrun
   % -- % Update error precisions % -- %
   Ytil = Y - B*THETA' - eta*Lambda'; % - C*Gamma'
   sig = gamrnd(as + 0.5 * T, 1./(bs+0.5*sum(Ytil.^2)))'; 
-  %G non ci torna la definizione del secondo parametro della gamma
+  %G alternative parametrization of Gamma
   
   % -- % Update eta % -- %        
   Lmsg = bsxfun(@times,Lambda,sig);
@@ -167,10 +167,9 @@ for i = 1:nrun
   % -- % Update delta & tauh % -- %
   mat = bsxfun(@times,phiih,Lambda.^2);
   ad = ad1 + 0.5*p*k; bd = bd1 + 0.5*(1/delta(1))*sum(tauh.*sum(mat)');
-  %G WHERE DOES DELTA COME FROM? 
-  delta(1) = gamrnd(ad,1/bd); %G nel paper supponiamo che questo sia lo zeta (speriamo)
-  %G altra domanda è che bd contiene delta(1), quindi tipo si ri-definisce
-  %su se stesso?
+  %G to remove the term zeta(h) (or better delta(h)) from the summation, we
+  % multiply the total sum by 1/delta(h)
+  delta(1) = gamrnd(ad,1/bd); %G delta = zeta in the paper
   tauh = cumprod(delta);
 
   for h = 2:k
@@ -192,14 +191,12 @@ for i = 1:nrun
  
   % -- % Update of Thetatilde % -- %
  for h = 1:p
-     Veta1 = sig(h) * B' * B + eye(2*q);
-     %G WE SUPPOSE THAT THIS IS THE Mi IN THE PAPER
+     Veta1 = sig(h) * B' * B + eye(2*q);            %G M_i in the paper
      Tchol = cholcov(Veta1); [Q,R] = qr(Tchol);
      S = inv(R); Veta = S*S';                       % Veta = inv(Veta1) 
      Ycent = Y(:, h) - eta*Lambda(h,:)';            % REMOVED: - C*Gamma(h,:)'
      Wtrans = W';
-     Meta = (sig(h) * B' * Ycent + Wtrans * Lambda(h,:)')'*Veta;
-     %G WE SUPPOSE THAT THIS IS m_i
+     Meta = (sig(h) * B' * Ycent + Wtrans * Lambda(h,:)')'*Veta;    %G m_i in the paper
      Thetatildeprop = Meta + normrnd(0,1, [1 2*q])*S';  % Generated Gammatilde_i from proposal distribution
      thetaprop = zeros(1, 2*q);
      index = find(bsxfun(@hypot, Thetatildeprop(odd)', Thetatildeprop(even)')' >= thr1(h, :)); 
