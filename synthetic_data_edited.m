@@ -36,6 +36,7 @@ end
 % and variance 9.
 k = floor(log(p)*10);                                   % True number of factors
 numeff = k + randperm(k);                               % Number of non-zero entries in each column of Lambda
+numeff = numeff';                                       %G we transpose so all our vectors are columns
 k = floor(log(q)*4);                                    %G arbitrary value, should be small (<10, >3)
 Lambda = zeros(p,k);
 % The number of non-zero entries varies between 63 and 114. Not many
@@ -169,26 +170,26 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This is to see how the different components of the model
 % "modify" the trajectory
-figure()
-out = per24(end);
+%figure()
+%out = per24(end);
 
 % First set of plots
-h1 = plot(tij.*46, B*THETA(out,:)', 'o', 'Color', 'red', 'MarkerSize',4);
-hold on
-line(tij.*46, B*THETA(out,:)', 'LineStyle', '-', 'Color', 'red', 'LineWidth', 1.5);
+%h1 = plot(tij.*46, B*THETA(out,:)', 'o', 'Color', 'red', 'MarkerSize',4);
+%hold on
+%line(tij.*46, B*THETA(out,:)', 'LineStyle', '-', 'Color', 'red', 'LineWidth', 1.5);
 
 % Second set of plots
-h2 = plot(tij.*46, B*THETA(out,:)' + eta*Lambda(out,:)', 'o', 'Color', 'black', 'MarkerSize',4);
-line(tij.*46, B*THETA(out,:)' + eta*Lambda(out,:)', 'LineStyle', '-.', 'Color', 'black', 'LineWidth', 3);
+%h2 = plot(tij.*46, B*THETA(out,:)' + eta*Lambda(out,:)', 'o', 'Color', 'black', 'MarkerSize',4);
+%line(tij.*46, B*THETA(out,:)' + eta*Lambda(out,:)', 'LineStyle', '-.', 'Color', 'black', 'LineWidth', 3);
 
 % Third set of plots
-h3 = plot(tij.*46, B*THETA(out,:)' + eta*Lambda(out,:)' + error, 'o', 'Color', 'blue', 'MarkerSize',4);
-line(tij.*46, B*THETA(out,:)' + eta*Lambda(out,:)' + error, 'LineStyle', ':', 'Color', 'blue', 'LineWidth', 3);
+%h3 = plot(tij.*46, B*THETA(out,:)' + eta*Lambda(out,:)' + error, 'o', 'Color', 'blue', 'MarkerSize',4);
+%line(tij.*46, B*THETA(out,:)' + eta*Lambda(out,:)' + error, 'LineStyle', ':', 'Color', 'blue', 'LineWidth', 3);
 
-ylim([-8,8]); xlim([0, 46])
-xlabel(['Time (hours)'], 'FontSize', 24); ylabel(['Normalized Expression Level'], 'FontSize', 24)
-title('Protein 487', 'FontSize', 24)
-legend([h1, h2, h3], {'Fourier basis', 'Fourier basis + latent factor', 'Fourier basis + latent factor + error'}, 'FontSize', 24);
+%ylim([-8,8]); xlim([0, 46])
+%xlabel(['Time (hours)'], 'FontSize', 24); ylabel(['Normalized Expression Level'], 'FontSize', 24)
+%title('Protein 487', 'FontSize', 24)
+%legend([h1, h2, h3], {'Fourier basis', 'Fourier basis + latent factor', 'Fourier basis + latent factor + error'}, 'FontSize', 24);
 
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
