@@ -19,7 +19,10 @@ int main()
     std::string file_path = "/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/Data/";
     
     // Define and load the matrices 
-    arma::mat B, B_pred, eta, lambda, theta, theta_tilde, thr1, W, Y; 
+    arma::mat eta, theta, theta_tilde, thr1, W, Y; 
+    // arma::mat B; 
+    // arma::mat B_pred; 
+    arma::mat lambda; 
     //load_matrix(file_path, "B.csv", B, true);
     //load_matrix(file_path, "Bpred.csv", Bpred, false);
     //load_matrix(file_path, "eta.csv", eta, false);
@@ -28,8 +31,8 @@ int main()
     //load_matrix(file_path, "Thetatilde.csv", theta_tilde, false);
     //load_matrix(file_path, "Thr1.csv", thr1, false);
     //load_matrix(file_path, "W.csv", W, false);
-    arma::mat Y; 
-    load_matrix(file_path, "Y.csv", Y, true);
+    //arma::mat Y; 
+    load_matrix(file_path, "Y.csv", Y, false);
 
     // Define and load the vectors - no prob with numeff, probs with tg and tij for rounding
     //arma::vec numeff, tg, tij; 
@@ -50,20 +53,20 @@ int main()
     arma::vec t_ij = arma::linspace(0,46,24)/46;
     arma::vec tg = arma:: linspace(0, 46, 461)/46; 
 
-    //arma::mat B = zeros<mat>(T,2*q); 
+    arma::mat B = zeros<mat>(T,2*q); 
     arma::mat B_pred = zeros<mat>(size(tg)[0], 2*q);
-    arma::vec lambda2 = arma::vec("8, 12, 16, 24, 48");
-    arma::vec periods = lambda2 / 2; 
-    arma::vec lambda = periods / 46; 
+    arma::vec initial_periods = arma::vec("8, 12, 16, 24, 48");
+    arma::vec periods = initial_periods / 2; 
+    arma::vec full_periods = periods / 46; 
 
-    for (size_t h=0; h<size(lambda)[0]; h++) {
-        arma::vec val1 = sin(((2*datum::pi)/(lambda(h)))*t_ij);
+    for (size_t h=0; h<size(full_periods)[0]; h++) {
+        arma::vec val1 = sin(((2*datum::pi)/(full_periods(h)))*t_ij);
         B.col(2*h) = val1; 
-        arma::vec val2 = sin(((2*datum::pi)/(lambda(h)))*tg);
+        arma::vec val2 = sin(((2*datum::pi)/(full_periods(h)))*tg);
         B_pred.col(2*h) = val2;
-        arma::vec val3 = cos(((2*datum::pi)/(lambda(h)))*t_ij);
+        arma::vec val3 = cos(((2*datum::pi)/(full_periods(h)))*t_ij);
         B.col(2*h+1) = val3;
-        arma::vec val4 = cos(((2*datum::pi)/(lambda(h)))*tg);
+        arma::vec val4 = cos(((2*datum::pi)/(full_periods(h)))*tg);
         B_pred.col(2*h+1) = val4;
     }
 
@@ -77,39 +80,40 @@ double sp = (nrun - burn)/thin; //Number of posterior samples
 int k = 5;  //Number of factors to start with (for now)
 // int k=int(log(p)*4); //Number of factors to start with (number of columns of Lambda)
                                    
-double b0 = 1; b1 = 0.0005; //parameters for exponential - assumed to be arbitrary
+double b0 = 1, b1 = 0.0005; //parameters for exponential - assumed to be arbitrary
 double epsilon = 1e-3;  //Threshold limit
 double prop = 1.00; //Proportion of redundant elements within columns
 
-double as = 1; bs = 0.5; //Gamma hyperparameters for residual precision (true value res variance = 1 for every i)
+double as = 1, bs = 0.5; //Gamma hyperparameters for residual precision (true value res variance = 1 for every i)
 double df = 3; //Gamma hyperparameters for t_{ij} [for phi_{ij} (i.e. rho)?]
-double ad1 = 2.1; bd1 = 1; //Gamma hyperparameters for delta_1
-double ad2 = 3.1; bd2 = 1; //gamma hyperparameters delta_h, h >= 2
-double adf = 1; bdf = 1;          //Gamma hyperparameters for ad1 and ad2 or df
+double ad1 = 2.1, bd1 = 1; //Gamma hyperparameters for delta_1
+double ad2 = 3.1, bd2 = 1; //gamma hyperparameters delta_h, h >= 2
+double adf = 1, bdf = 1;          //Gamma hyperparameters for ad1 and ad2 or df
 
 // Initial values
 arma::colvec sig(p);
+
+std::cout << "test 96"; 
 
 for (int i=0; i<p; i++ ) {
     sig(i)=1/as_scalar(arma::randg(1, arma::distr_param(as,1/bs)));  //Residual variance (diagonal of sig^(-2)_i across proteins)
   }
  
-arma::colvec odd;
-arma::colvec even;
-for (size_t i=1;i<=q;i++){
-	even = join_cols(odd, vec({2 * i }));
-	odd = join_cols(even, vec({2 * i - 1}));
-}
+arma::vec odd = arma::linspace(1,q,3);
+arma::vec even = arma::linspace(0,q-1,3);
 
-Lambda = arma::zeros(p,k);  //loading matrix
-eta =  arma::mvnrnd(arma::zeros(T,k), arma::eye(k,k)); //Latent factors (distrib. = mean 0 and identity cov matrix)
+lambda = arma::zeros(p,k);  //loading matrix
+eta =  arma::mvnrnd(arma::colvec(T,k, fill::zeros), arma::mat(k,k,fill::eye)); //Latent factors (distrib. = mean 0 and identity cov matrix)
+std::cout << "\n AIUTOOOOOO";
 W = arma::mvnrnd(arma::zeros(2*q,k), arma::eye(k,k)).t(); //Low dim. matrix W
-theta_tilde = Lambda * W //Matrix of unshrunk coefficients
+theta_tilde = lambda * W;  //Matrix of unshrunk coefficients
 theta = arma::zeros(p,2*q);  //Matrix of (fixed) basis functions coefficients
 int Kappatheta = 5;
 thr1 = randu( p, q, distr_param(0,Kappatheta)); //Matrix of thresholds for THETA
 
-for (int i=0; i<q; i++) {
+
+
+/*for (int i=0; i<q; i++) {
 	arma::vec hypot_values = sqrt(pow(theta_tilde.col(2*i), 2) + pow(theta_tilde.col(2*i+1), 2));
     // Creare un vettore booleano per il confronto
     arma::uvec index = find(hypot_values >= thr1.col(i));
@@ -118,11 +122,9 @@ for (int i=0; i<q; i++) {
         std::cout << index.n_elem; 
         theta(index, {2*i-1, 2*i}) = theta_tilde(index, {2*i-1, 2*i});
     }
-
-}
-
-
-
+    }*/ 
+int i = 1;
+std::cout << sqrt(pow(theta_tilde.col(2*i), 2) + pow(theta_tilde.col(2*i+1), 2));
 
     return 0;
 }
