@@ -93,8 +93,6 @@ double adf = 1, bdf = 1;          //Gamma hyperparameters for ad1 and ad2 or df
 // Initial values
 arma::colvec sig(p);
 
-std::cout << "test 96"; 
-
 for (int i=0; i<p; i++ ) {
     sig(i)=1/as_scalar(arma::randg(1, arma::distr_param(as,1/bs)));  //Residual variance (diagonal of sig^(-2)_i across proteins)
   }
@@ -102,34 +100,61 @@ for (int i=0; i<p; i++ ) {
 arma::vec odd = arma::linspace(1,q,3);
 arma::vec even = arma::linspace(0,q-1,3);
 
-lambda = arma::zeros(p,k);  //loading matrix
-eta =  arma::mvnrnd(arma::colvec(T,k, fill::zeros), arma::mat(k,k,fill::eye)); //Latent factors (distrib. = mean 0 and identity cov matrix)
-std::cout << "\n AIUTOOOOOO";
-W = arma::mvnrnd(arma::zeros(2*q,k), arma::eye(k,k)).t(); //Low dim. matrix W
+//lambda = arma::zeros(p,k);  //loading matrix
+lambda = arma::ones(p,k);
+eta = arma::zeros<mat>(T,k);
+//std::cout << "size: " << eta.size() << std::endl; 
+for (size_t i = 0; i < T; ++i) {
+    eta.row(i) = mvnrnd(arma::zeros<vec>(k), arma::eye(5,5)).t();
+}
+W = arma::zeros<mat>(2*q,k);
+for (size_t i = 0; i < 2*q; ++i) {
+    W.row(i) = mvnrnd(arma::zeros(k), arma::eye(k,k)).t();
+}
+//vec v = linspace<vec>(1, 10, 10);
+//W = repmat(v, 1, 5); // TODO: just for testing
+W = W.t();  // Low dim. matrix W 
+//W.print();
 theta_tilde = lambda * W;  //Matrix of unshrunk coefficients
 theta = arma::zeros(p,2*q);  //Matrix of (fixed) basis functions coefficients
-int Kappatheta = 5;
-thr1 = randu( p, q, distr_param(0,Kappatheta)); //Matrix of thresholds for THETA
+int kappa_theta = 5;
+thr1 = randu(p, q, distr_param(0, kappa_theta)); //Matrix of thresholds for THETA
 
-
-
-/*for (int i=0; i<q; i++) {
-	arma::vec hypot_values = sqrt(pow(theta_tilde.col(2*i), 2) + pow(theta_tilde.col(2*i+1), 2));
-    // Creare un vettore booleano per il confronto
-    arma::uvec index = find(hypot_values >= thr1.col(i));
-    // Se ci sono indici, aggiorna la matrice THETA
-    if (index.n_elem > 0) {
-        std::cout << index.n_elem; 
-        theta(index, {2*i-1, 2*i}) = theta_tilde(index, {2*i-1, 2*i});
+for (size_t i = 0; i<q; ++i) {
+    arma::uvec index = find(sqrt(square(abs(theta_tilde.col(2*i))) + square(abs(theta_tilde.col(2*i+1)))));
+    for(const auto& ind : index)
+    {
+        theta(ind, 2*i) = theta_tilde(ind, 2*i);
+        theta(ind, 2*i + 1) = theta_tilde(ind, 2*i + 1);
     }
-    }*/ 
-int i = 1;
-std::cout << sqrt(pow(theta_tilde.col(2*i), 2) + pow(theta_tilde.col(2*i+1), 2));
+}
+
+//std::cout << "theta after" << endl; 
+//theta.print(); 
+
+
+//std:: cout << sqrt(square(abs(theta_tilde.col(2*i))) + square(abs(theta_tilde.col(2*i+1))));
+//int i=0; 
+//std::cout << "test: \n" << square(abs(theta_tilde.col(2*i))) + square(abs(theta_tilde.col(2*i+1)));
+
+//for (int i=0; i<q; i++) {
+	//arma::vec hypot_values = sqrt(pow(theta_tilde.col(2*i), 2) + pow(theta_tilde.col(2*i+1), 2));
+    // Creare un vettore booleano per il confronto
+    //arma::uvec index = find(hypot_values >= thr1.col(i));
+    //std::cout << index << endl; 
+    // Se ci sono indici, aggiorna la matrice THETA
+    //if (index.n_elem > 0) {
+    //    std::cout << index.n_elem; 
+    //    theta(index, {2*i-1, 2*i}) = theta_tilde(index, {2*i-1, 2*i});
+    //}
+
+//int i = 1;
+//std::cout << sqrt(pow(theta_tilde.col(2*i), 2) + pow(theta_tilde.col(2*i+1), 2));
 
     return 0;
 }
 
-void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print) {
+void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print=true) {
         std::string specific_path = file_path + file_name;
         mat.load(specific_path, arma::csv_ascii);
         if (print == true)
@@ -137,14 +162,14 @@ void load_matrix (const std::string& file_path, const std::string& file_name, ar
             mat.raw_print(); 
     }
 
-void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print) {
+void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print=true) {
         std::string specific_path = file_path + file_name;
         vec.load(specific_path, arma::csv_ascii);
         if (print == true)
             vec.raw_print(); 
     }
 
-void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print) {
+void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print=true) {
         std::string specific_path = file_path + file_name;
         std::ifstream num_file(specific_path);
          num_file >> num;
