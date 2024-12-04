@@ -20,15 +20,17 @@ tij = [0:2:46]'/46;                         % Time points at which the probes ha
 tg = [0:0.1:46]'/ 46;                       % Fine grid of equally spaced measurement times for prediction
 B = zeros(T, 2*q);                          % Design matrix for data in study
 Bpred = zeros(length(tg), 2*q);             % Design matrix for estimation / prediction
-lambda2 = [8, 12, 16, 24, 48];              % Range of periods for fixed basis functions (based on Fourier transforms for 2t)
-periods = lambda2./2;                       % Periods on a unit-based increment
-lambda = periods./46;                       % Periods for our time increments
 
-for h = 1 : length(lambda)
-    B(:, 2*h - 1) = sin(((2*pi)/(lambda(h))).*tij);
-    Bpred(:, 2*h - 1) = sin(((2*pi)/(lambda(h))).*tg);
-    B(:, 2*h) = cos(((2*pi)/(lambda(h))).*tij);
-    Bpred(:, 2*h) = cos(((2*pi)/(lambda(h))).*tg);
+%G changed names of variables below
+initial_periods = [8, 12, 16, 24, 48];      % Range of periods for fixed basis functions (based on Fourier transforms for 2t)
+periods = initial_periods./2;               % Periods on a unit-based increment
+full_periods = periods./46;                 % Periods for our time increments
+                                             
+for h = 1 : length(full_periods)
+    B(:, 2*h - 1) = sin(((2*pi)/(full_periods(h))).*tij);
+    Bpred(:, 2*h - 1) = sin(((2*pi)/(full_periods(h))).*tg);
+    B(:, 2*h) = cos(((2*pi)/(full_periods(h))).*tij);
+    Bpred(:, 2*h) = cos(((2*pi)/(full_periods(h))).*tg);
 end
 
 % % --- Define global constants --- % %
