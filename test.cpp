@@ -4,41 +4,98 @@
 
 #include <iostream>
 #include <armadillo>
+#include <iomanip>
 
 using namespace std;
 using namespace arma;
 
+ void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print);
+ void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print); 
+ void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print);
+
 int main()
 {
-    mat A(4, 5, fill::randu);
-    mat B(4, 5, fill::randu);
+    //arma::set_print_format(arma::PrintFormat::scientific); 
+    std::string file_path = "/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/Data/";
+    
+    // Define and load the matrices 
+    //arma::mat Bpred, eta, lambda, theta, theta_tilde, thr1, W, Y; 
+    //arma::mat<long> B; 
+    //load_matrix(file_path, "B.csv", B, true);
+    //load_matrix(file_path, "Bpred.csv", Bpred, false);
+    //load_matrix(file_path, "eta.csv", eta, false);
+    //load_matrix(file_path, "Lambda.csv", lambda, false);
+    //load_matrix(file_path, "THETA.csv", theta, false);
+    //load_matrix(file_path, "Thetatilde.csv", theta_tilde, false);
+    //load_matrix(file_path, "Thr1.csv", thr1, false);
+    //load_matrix(file_path, "W.csv", W, false);
+    arma::mat Y; 
+    load_matrix(file_path, "Y.csv", Y, true);
 
-    cout << A*B.t() << endl;
+    // Define and load the vectors - no prob with numeff, probs with tg and tij for rounding
+    //arma::vec numeff, tg, tij; 
+    //load_vector(file_path, "numeff.csv", numeff, false);
+    //load_vector(file_path, "tg.csv", tg, false);
+    //load_vector(file_path, "tij.csv", tij, false);  
+
+    // Define and load the constants
+    //int p,T;
+    //load_constant(file_path, "p.csv", p, false);
+    //load_constant(file_path, "T.csv", T, false);
+
+    // Case where I have real data and so only load Y 
+    int p = Y.n_cols;
+    int T = Y.n_rows;
+    int const q=5;
+
+    arma::vec t_ij = arma::linspace(0,46,24)/46;
+    arma::vec tg = arma:: linspace(0, 46, 461)/46; 
+
+    arma::mat B = zeros<mat>(T,2*q); 
+    arma::mat B_pred = zeros<mat>(size(tg)[0], 2*q);
+    arma::vec lambda2 = arma::vec("8, 12, 16, 24, 48");
+    arma::vec periods = lambda2 / 2; 
+    arma::vec lambda = periods / 46; 
+
+    for (size_t h=0; h<size(lambda); h++) {
+        arma::vec val1 = sin(((2*datum::pi)/(lambda(h)))*t_ij);
+        B.col(2*h) = val1; 
+        arma::vec val2 = sin(((2*datum::pi)/(lambda(h)))*tg);
+        B_pred.col(2*h) = val2;
+        arma::vec val3 = cos(((2*datum::pi)/(lambda(h)))*t_ij);
+        B.col(2*h+1) = val3;
+        arma::vec val4 = cos(((2*datum::pi)/(lambda(h)))*tg);
+        B_pred.col(2*h+1) = val4;
+    }
+
 
     return 0;
 }
 
+void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print) {
+        std::string specific_path = file_path + file_name;
+        mat.load(specific_path, arma::csv_ascii);
+        if (print == true)
+            std::cout << mat << endl; 
+    }
+
+void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print) {
+        std::string specific_path = file_path + file_name;
+        vec.load(specific_path, arma::csv_ascii);
+        if (print == true)
+            std::cout << vec << endl; 
+    }
+
+void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print) {
+        std::string specific_path = file_path + file_name;
+        std::ifstream num_file(specific_path);
+         num_file >> num;
+        if (print == true)
+            std::cout << num << endl; 
+    }
+
+
 /*
-int const q=5;
-// dati se li carico direttamente da codice
-//const int p= t[0].size()
-//const int t=t.size()
-//std::vector<double> tij, tg;
-//    for (double t = 0; t <= 46; t += 2) {
-//        tij.push_back(t / 46);
-//    }
-//    for (double t = 0; t <= 46; t += 0.1) {
-//        tg.push_back(t / 46);
-//    }
-//    std::vector<std::vector<double>> B(T, std::vector<double>(2 * q, 0.0));
-//    std::vector<std::vector<double>> Bpred(tg.size(), std::vector<double>(2 * q, 0.0));
-//    std::vector<double> lambda2 = {8, 12, 16, 24, 48};
-//    std::vector<double> periods(lambda2.size());
-//    std::vector<double> lambda(lambda2.size());
-//    for (size_t i = 0; i < lambda2.size(); ++i) {
-//        periods[i] = lambda2[i] / 2;
-//        lambda[i] = periods[i] / 46;
-//    }
 
 
 for(size_t h=0;h<lambda.size();h++){
