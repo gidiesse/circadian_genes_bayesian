@@ -19,8 +19,7 @@ int main()
     std::string file_path = "/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/Data/";
     
     // Define and load the matrices 
-    //arma::mat Bpred, eta, lambda, theta, theta_tilde, thr1, W, Y; 
-    //arma::mat<long> B; 
+    arma::mat B, B_pred, eta, lambda, theta, theta_tilde, thr1, W, Y; 
     //load_matrix(file_path, "B.csv", B, true);
     //load_matrix(file_path, "Bpred.csv", Bpred, false);
     //load_matrix(file_path, "eta.csv", eta, false);
@@ -51,13 +50,13 @@ int main()
     arma::vec t_ij = arma::linspace(0,46,24)/46;
     arma::vec tg = arma:: linspace(0, 46, 461)/46; 
 
-    arma::mat B = zeros<mat>(T,2*q); 
+    //arma::mat B = zeros<mat>(T,2*q); 
     arma::mat B_pred = zeros<mat>(size(tg)[0], 2*q);
     arma::vec lambda2 = arma::vec("8, 12, 16, 24, 48");
     arma::vec periods = lambda2 / 2; 
     arma::vec lambda = periods / 46; 
 
-    for (size_t h=0; h<size(lambda); h++) {
+    for (size_t h=0; h<size(lambda)[0]; h++) {
         arma::vec val1 = sin(((2*datum::pi)/(lambda(h)))*t_ij);
         B.col(2*h) = val1; 
         arma::vec val2 = sin(((2*datum::pi)/(lambda(h)))*tg);
@@ -68,6 +67,62 @@ int main()
         B_pred.col(2*h+1) = val4;
     }
 
+arma::arma_rng::set_seed(230518); // set the seed of the random number generator
+// parameters gibbs sampler
+int rep = 1; 
+int nrun = 10000;         // Tot. number of iteration
+int  burn = 1000;          // Burn-in
+int thin = 5;             // Thinning
+double sp = (nrun - burn)/thin; //Number of posterior samples
+int k = 5;  //Number of factors to start with (for now)
+// int k=int(log(p)*4); //Number of factors to start with (number of columns of Lambda)
+                                   
+double b0 = 1; b1 = 0.0005; //parameters for exponential - assumed to be arbitrary
+double epsilon = 1e-3;  //Threshold limit
+double prop = 1.00; //Proportion of redundant elements within columns
+
+double as = 1; bs = 0.5; //Gamma hyperparameters for residual precision (true value res variance = 1 for every i)
+double df = 3; //Gamma hyperparameters for t_{ij} [for phi_{ij} (i.e. rho)?]
+double ad1 = 2.1; bd1 = 1; //Gamma hyperparameters for delta_1
+double ad2 = 3.1; bd2 = 1; //gamma hyperparameters delta_h, h >= 2
+double adf = 1; bdf = 1;          //Gamma hyperparameters for ad1 and ad2 or df
+
+// Initial values
+arma::colvec sig(p);
+
+for (int i=0; i<p; i++ ) {
+    sig(i)=1/as_scalar(arma::randg(1, arma::distr_param(as,1/bs)));  //Residual variance (diagonal of sig^(-2)_i across proteins)
+  }
+ 
+arma::colvec odd;
+arma::colvec even;
+for (size_t i=1;i<=q;i++){
+	even = join_cols(odd, vec({2 * i }));
+	odd = join_cols(even, vec({2 * i - 1}));
+}
+
+Lambda = arma::zeros(p,k);  //loading matrix
+eta =  arma::mvnrnd(arma::zeros(T,k), arma::eye(k,k)); //Latent factors (distrib. = mean 0 and identity cov matrix)
+W = arma::mvnrnd(arma::zeros(2*q,k), arma::eye(k,k)).t(); //Low dim. matrix W
+theta_tilde = Lambda * W //Matrix of unshrunk coefficients
+theta = arma::zeros(p,2*q);  //Matrix of (fixed) basis functions coefficients
+int Kappatheta = 5;
+thr1 = randu( p, q, distr_param(0,Kappatheta)); //Matrix of thresholds for THETA
+
+for (int i=0; i<q; i++) {
+	arma::vec hypot_values = sqrt(pow(theta_tilde.col(2*i), 2) + pow(theta_tilde.col(2*i+1), 2));
+    // Creare un vettore booleano per il confronto
+    arma::uvec index = find(hypot_values >= thr1.col(i));
+    // Se ci sono indici, aggiorna la matrice THETA
+    if (index.n_elem > 0) {
+        std::cout << index.n_elem; 
+        theta(index, {2*i-1, 2*i}) = theta_tilde(index, {2*i-1, 2*i});
+    }
+
+}
+
+
+
 
     return 0;
 }
@@ -76,14 +131,15 @@ void load_matrix (const std::string& file_path, const std::string& file_name, ar
         std::string specific_path = file_path + file_name;
         mat.load(specific_path, arma::csv_ascii);
         if (print == true)
-            std::cout << mat << endl; 
+            //std::cout << mat << endl; 
+            mat.raw_print(); 
     }
 
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print) {
         std::string specific_path = file_path + file_name;
         vec.load(specific_path, arma::csv_ascii);
         if (print == true)
-            std::cout << vec << endl; 
+            vec.raw_print(); 
     }
 
 void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print) {
