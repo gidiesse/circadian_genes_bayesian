@@ -4,8 +4,11 @@
 #include <random>
 #include <fstream>
 #include <sstream>
+#include <armadillo>
 
 using namespace std;
+using namespace arma;
+
 int main(){
     mt19937 generator(500);
     std::ifstream Yfile("Y.csv");
