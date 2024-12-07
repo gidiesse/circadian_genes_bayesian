@@ -7,7 +7,7 @@ void load_constant (const std::string& file_path, const std::string& file_name, 
 
 int main()
 {
-    std::string file_path = "D:/Politecnico/MAGISTRALE/Corsi/Bayesian statistics/Project/Check/Data/";
+    std::string file_path = "D:/Politecnico/MAGISTRALE/Corsi/Bayesian statistics/Project/circadian_genes_bayesian/Data/";
     arma::arma_rng::set_seed(230518);
 
     arma::mat Y;
@@ -18,7 +18,7 @@ int main()
 
     const int q = 5;
 
-    arma::vec t_ij = arma::linspace<arma::vec>(0,46,24);
+    arma::vec t_ij = arma::linspace<arma::vec>(0, 46, 24);
     t_ij = t_ij / arma::max(t_ij);    // standardized time points
 
     arma::vec tg = arma::linspace<arma::vec>(0, 46, 461) / 46;
@@ -26,9 +26,9 @@ int main()
     arma::mat B(T, 2*q, arma::fill::zeros);
     arma::mat B_pred(tg.n_elem, 2*q, arma::fill::zeros);
 
-    arma::vec initial_periods = arma::vec("8, 12, 16, 24, 48");
-    arma::vec periods = initial_periods / 2;
-    arma::vec full_periods = periods / 46;
+    arma::rowvec initial_periods = {8, 12, 16, 24, 48};
+    arma::rowvec periods = initial_periods / 2;
+    arma::rowvec full_periods = periods / 46;
 
     for (size_t h = 0; h < full_periods.n_elem; ++h) {
         B.col(2*h) = sin(((2*arma::datum::pi) / (full_periods(h)))*t_ij);
@@ -40,12 +40,12 @@ int main()
 
     // Define global constants
     int rep = 1;
-    int nrun = 10000;                   // Tot. number of iteration
+    int nrun = 10000;                   // Number of iteration
     int burn = 1000;                    // Burn-in
     int thin = 5;                       // Thinning
     double sp = (nrun - burn) / thin;   // Number of posterior samples
     int k = 5;                          // Number of factors to start with (for now)
-    // int k = int(log(p)*4);           // Number of factors to start with (number of columns of Lambda)
+    // int k = arma::floor(log(p)*4);   // Number of factors to start with (number of columns of Lambda)
 
     double b0 = 1, b1 = 0.0005;         // Parameters for exponential - assumed to be arbitrary
     double epsilon = 1e-3;              // Threshold limit
@@ -64,8 +64,8 @@ int main()
     // a: shape parameter, b: scale parameter
     arma::colvec sig = arma::randg(p, arma::distr_param(as, 1/bs));
 
-    arma::vec odd = arma::regspace(1, 2, q);
-    arma::vec even = arma::regspace(0, 2, q-1);
+    arma::rowvec odd = arma::linspace<arma::rowvec>(1, 2*q - 1, q);
+    arma::rowvec even = arma::linspace<arma::rowvec>(2, 2*q, q);
 
     arma::mat lambda(p, k, arma::fill::zeros);      // Factor loadings
     arma::mat eta(T, k, arma::fill::zeros);         // Latent factors
