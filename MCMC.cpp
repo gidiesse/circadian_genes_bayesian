@@ -7,7 +7,7 @@ void load_constant (const std::string& file_path, const std::string& file_name, 
 
 int main()
 {
-    std::string file_path = "D:/Politecnico/MAGISTRALE/Corsi/Bayesian statistics/Project/circadian_genes_bayesian/Data/";
+    std::string file_path = "../Data/";
     arma::arma_rng::set_seed(230518);
 
     arma::mat Y;
@@ -76,12 +76,10 @@ int main()
     arma::mat W = arma::mvnrnd(arma::colvec(k, arma::fill::zeros),
                                arma::eye(k, k), 2*q);
 
-    // TO BE CONTINUED
-
-    arma::mat theta_tilde = lambda * W;                                     // Matrix of un-shrunk coefficients
+    arma::mat theta_tilde = lambda * W;                // Matrix of un-shrunk coefficients
     arma::mat theta(p, 2*q, arma::fill::zeros);        // Matrix of (fixed) basis functions coefficients
 
-    double kappa_theta = 5.;                                                    // Upper bound on the Uniform prior on the thresholds
+    double kappa_theta = 5.;                                                       // Upper bound on the Uniform prior on the thresholds
     arma::mat thresholds = arma::randu(p, q, arma::distr_param(0., kappa_theta));  // Matrix of thresholds for theta
 
     for (size_t i = 0; i < q; ++i)
