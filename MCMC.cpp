@@ -30,7 +30,8 @@ int main()
     arma::rowvec periods = initial_periods / 2;
     arma::rowvec full_periods = periods / 46;
 
-    for (size_t h = 0; h < full_periods.n_elem; ++h) {
+    for (size_t h = 0; h < full_periods.n_elem; ++h)
+    {
         B.col(2*h) = sin(((2*arma::datum::pi) / (full_periods(h)))*t_ij);
         B_pred.col(2*h) = sin(((2*arma::datum::pi) / (full_periods(h)))*tg);
 
@@ -47,16 +48,16 @@ int main()
     int k = 5;                          // Number of factors to start with (for now)
     // int k = arma::floor(log(p)*4);   // Number of factors to start with (number of columns of Lambda)
 
-    double b0 = 1, b1 = 0.0005;         // Parameters for exponential - assumed to be arbitrary
+    double b0 = 1., b1 = 0.0005;         // Parameters for exponential - assumed to be arbitrary
     double epsilon = 1e-3;              // Threshold limit
     double prop = 1.00;                 // Proportion of redundant elements within columns
 
     // Define hyper-parameter values
-    double as = 1, bs = 0.5;            // Gamma hyper-parameters for residual precision (true value res variance = 1 for every i)
-    double df = 3;                      // Gamma hyper-parameters for t_{ij} [for phi_{ij} (i.e. rho)?]
-    double ad1 = 2.1, bd1 = 1;          // Gamma hyper-parameters for delta_1
-    double ad2 = 3.1, bd2 = 1;          // Gamma hyper-parameters delta_h, h >= 2
-    double adf = 1, bdf = 1;            // Gamma hyper-parameters for ad1 and ad2 or df
+    double as = 1., bs = 0.5;            // Gamma hyper-parameters for residual precision (true value res variance = 1 for every i)
+    double df = 3.;                      // Gamma hyper-parameters for t_{ij} [for phi_{ij} (i.e. rho)?]
+    double ad1 = 2.1, bd1 = 1.;          // Gamma hyper-parameters for delta_1
+    double ad2 = 3.1, bd2 = 1.;          // Gamma hyper-parameters delta_h, h >= 2
+    double adf = 1., bdf = 1.;            // Gamma hyper-parameters for ad1 and ad2 or df
 
     // Initial values
 
@@ -67,10 +68,31 @@ int main()
     arma::rowvec odd = arma::linspace<arma::rowvec>(1, 2*q - 1, q);
     arma::rowvec even = arma::linspace<arma::rowvec>(2, 2*q, q);
 
-    arma::mat lambda(p, k, arma::fill::zeros);      // Factor loadings
-    arma::mat eta(T, k, arma::fill::zeros);         // Latent factors
+    arma::mat lambda(p, k, arma::fill::zeros);              // Factor loadings
+
+    arma::mat eta = arma::mvnrnd(arma::colvec(k, arma::fill::zeros),
+                                 arma::eye(k, k), T).t();   // Latent factors
+
+    arma::mat W = arma::mvnrnd(arma::colvec(k, arma::fill::zeros),
+                               arma::eye(k, k), 2*q);
 
     // TO BE CONTINUED
+
+    arma::mat theta_tilde = lambda * W;                                     // Matrix of un-shrunk coefficients
+    arma::mat theta(p, 2*q, arma::fill::zeros);        // Matrix of (fixed) basis functions coefficients
+
+    double kappa_theta = 5.;                                                    // Upper bound on the Uniform prior on the thresholds
+    arma::mat thresholds = arma::randu(p, q, arma::distr_param(0., kappa_theta));  // Matrix of thresholds for theta
+
+    for (size_t i = 0; i < q; ++i)
+    {
+        arma::uvec index = arma::find(arma::norm(theta_tilde.cols(2*i, 2*i+1), 2) >= thresholds.col(i));
+        for(const auto& ind : index)
+        {
+            theta(ind, 2*i) = theta_tilde(ind, 2*i);
+            theta(ind, 2*i + 1) = theta_tilde(ind, 2*i + 1);
+        }
+    }
 
     return 0;
 }
