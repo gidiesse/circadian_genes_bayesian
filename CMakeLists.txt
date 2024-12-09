@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 find_package(Armadillo REQUIRED)
 include_directories(${ARMADILLO_INCLUDE_DIRS})
-add_executable(circadian_genes test.cpp)
+add_executable(circadian_genes test_9_12.cpp)
 
 
 #add_executable(circadian_genes

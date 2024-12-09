@@ -61,20 +61,28 @@ for i = 1:q
   even = [even, 2*i];                             % Index for cos bases
 end      
 
-Lambda = zeros(p,k);                              % Factor loadings                          
-eta = mvnrnd(zeros(T, k), eye(k));                % Latent factors (distrib. = mean 0 and identity cov matrix)
-W = mvnrnd(zeros(2*q, k), eye(k))';               % Low dim. matrix W
+Lambda = zeros(p,k); % Factor loadings                          
+eta = mvnrnd(zeros(T, k), eye(k));                % Latent factors (distrib. = mean 0 and identity cov matrix
+W = mvnrnd(zeros(2*q, k), eye(k))'; % Low dim. matrix W
 Thetatilde = Lambda*W;                            % Matrix of unshrunk coefficients
 THETA = zeros(p, 2*q);                            % Matrix of (fixed) basis functions coefficients
 Kappatheta = 5;                                   % Upper bound on the Unif prior on the thresholds (can modify this number as pleased)  
-thr1 = unifrnd(0, Kappatheta, [p, q]);            % Matrix of thresholds for THETA
+thr1 = unifrnd(0, Kappatheta, [p, q]);  % Matrix of thresholds for THETA
+
+disp("Theta at the beginning:");
+THETA
 
 for i = 1:q
   index = find(bsxfun(@hypot, Thetatilde(: , 2*i-1), Thetatilde(:, 2*i)) >= thr1(:, i)); 
+  index
   if length(index) ~= 0
   THETA(index, [2*i - 1 2*i]) = Thetatilde(index, [2*i - 1 2*i]);  
   end
 end
+
+disp("Theta at the end:");
+THETA
+
 
 phiih = gamrnd(df/2, 2/df, [p,k]);                         % Local shrinkage coefficients
 delta = [gamrnd(ad1,bd1); gamrnd(ad2, bd2, [k-1,1])];      % Global shrinkage coefficients multilpliers
@@ -318,31 +326,3 @@ toc;
 % MAYBE NOT NECESSARY IF HAPPY WITH EVERYTHING
 save('Workspace500.mat')
 
-%%% TRACE PLOT ATTEMPT %%% 
-% Load theta samples from file
-theta_samples = load('thetaout.txt'); 
-[n_samples, theta_dim] = size(theta_samples);
-
-for h = 1:25 % Visualise the trajectories of the first 25 circadian genes (lower if less than 25)
-    %cnt = cnt + 1';
-    subplot(5, 5, h);
-    theta_trace = theta_samples(:, h);
-    plot(1:n_samples, theta_trace, 'LineWidth', 1.5);
-    xlabel('Iteration');
-    ylabel(['\theta_{', num2str(h), '}']);
-    title(['Trace-plot of \theta_{', num2str(h), '}']);
-    grid on;
-end
-
-element_index = 1; % Index of theta element to plot (1 to theta_dim)
-
-% Extract the samples for the chosen element
-theta_trace = theta_samples(:, element_index);
-
-% Create the trace plot
-figure;
-plot(1:n_samples, theta_trace, 'LineWidth', 1.5);
-xlabel('Iteration');
-ylabel(['\theta_{', num2str(element_index), '}']);
-title('Trace Plot of \theta');
-grid on;
