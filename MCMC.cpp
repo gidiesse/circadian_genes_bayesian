@@ -169,7 +169,7 @@ arma::mat chol_cov (const arma::mat& mat) {
         arma::vec eigvals;
         arma::mat eigvecs;
         // Calcola gli autovalori e gli autovettori
-        arma::eig_sym(eigvals, eigvecs, mat);
+        arma::eig_gen(eigvals, eigvecs, mat);
         // Costruisci la matrice diagonale Lambda dagli autovalori
         arma::mat Lambda = arma::diagmat(eigvals);
         // Verifica la decomposizione A = V * Lambda * V^T
