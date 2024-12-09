@@ -13,22 +13,22 @@ int main()
     arma::mat Y;
     load_matrix(file_path, "Y.csv", Y, false);
 
-    int p = Y.n_cols;
-    int T = Y.n_rows;
+    int p = Y.n_cols;       // p = number of proteins
+    int T = Y.n_rows;       // T = number of time points
 
-    const int q = 5;
+    const int q = 5;        // number of sin (cos) bases, for a total of 2q bases - no intercept
 
     arma::vec t_ij = arma::linspace<arma::vec>(0, 46, 24);
-    t_ij = t_ij / arma::max(t_ij);    // standardized time points
+    t_ij = t_ij / arma::max(t_ij);                              // standardized time points
 
-    arma::vec tg = arma::linspace<arma::vec>(0, 46, 461) / 46;
+    arma::vec tg = arma::linspace<arma::vec>(0, 46, 461) / 46;  // standardized prediction grid
 
-    arma::mat B(T, 2*q, arma::fill::zeros);
-    arma::mat B_pred(tg.n_elem, 2*q, arma::fill::zeros);
+    arma::mat B(T, 2*q, arma::fill::zeros);                     // design matrix (data)
+    arma::mat B_pred(tg.n_elem, 2*q, arma::fill::zeros);        // design matrix (estimation/prediction)
 
-    arma::rowvec initial_periods = {8, 12, 16, 24, 48};
-    arma::rowvec periods = initial_periods / 2;
-    arma::rowvec full_periods = periods / 46;
+    arma::rowvec initial_periods = {8, 12, 16, 24, 48};         // range of periods for fixed basis functions
+    arma::rowvec periods = initial_periods / 2;                 // periods on a unit-based increment
+    arma::rowvec full_periods = periods / 46;                   // periods for our time increments
 
     for (size_t h = 0; h < full_periods.n_elem; ++h)
     {
@@ -48,7 +48,7 @@ int main()
     int k = 5;                          // Number of factors to start with (for now)
     // int k = arma::floor(log(p)*4);   // Number of factors to start with (number of columns of Lambda)
 
-    double b0 = 1., b1 = 0.0005;         // Parameters for exponential - assumed to be arbitrary
+    double b0 = 1., b1 = 0.0005;        // Parameters for exponential - assumed to be arbitrary
     double epsilon = 1e-3;              // Threshold limit
     double prop = 1.00;                 // Proportion of redundant elements within columns
 
@@ -57,7 +57,7 @@ int main()
     double df = 3.;                      // Gamma hyper-parameters for t_{ij} [for phi_{ij} (i.e. rho)?]
     double ad1 = 2.1, bd1 = 1.;          // Gamma hyper-parameters for delta_1
     double ad2 = 3.1, bd2 = 1.;          // Gamma hyper-parameters delta_h, h >= 2
-    double adf = 1., bdf = 1.;            // Gamma hyper-parameters for ad1 and ad2 or df
+    double adf = 1., bdf = 1.;           // Gamma hyper-parameters for ad1 and ad2 or df
 
     // Initial values
 
@@ -76,10 +76,10 @@ int main()
     arma::mat W = arma::mvnrnd(arma::colvec(k, arma::fill::zeros),
                                arma::eye(k, k), 2*q);
 
-    arma::mat theta_tilde = lambda * W;                // Matrix of un-shrunk coefficients
-    arma::mat theta(p, 2*q, arma::fill::zeros);        // Matrix of (fixed) basis functions coefficients
+    arma::mat theta_tilde = lambda * W;                 // Matrix of un-shrunk coefficients
+    arma::mat theta(p, 2*q, arma::fill::zeros);         // Matrix of (fixed) basis functions coefficients
 
-    double kappa_theta = 5.;                                                       // Upper bound on the Uniform prior on the thresholds
+    double kappa_theta = 5.;                            // Upper bound on the Uniform prior on the thresholds
     arma::mat thresholds = arma::randu(p, q, arma::distr_param(0., kappa_theta));  // Matrix of thresholds for theta
 
     for (size_t i = 0; i < q; ++i)
@@ -90,6 +90,47 @@ int main()
             theta(ind, 2*i) = theta_tilde(ind, 2*i);
             theta(ind, 2*i + 1) = theta_tilde(ind, 2*i + 1);
         }
+    }
+
+    arma::mat phi_ih = arma::randg(p, k, arma::distr_param(df/2, 2/df));   // Local shrinkage coefficients
+
+    arma::colvec delta(k, arma::fill::zeros);                              // Global shrinkage coefficients multipliers
+    delta.row(0) = arma::randg(arma::distr_param(ad1,bd1));
+    delta.rows(1,k-1) = arma::randg(k-1, 1, arma::distr_param(ad2,bd2));
+
+    arma::colvec tau_h = arma::cumprod(delta);                             // Global shrinkage coefficients
+
+    arma::mat P_lam(p,k);                            // Precision of loadings rows
+    for (size_t i = 0; i < p; ++i)
+        P_lam.row(i) = phi_ih.row(i) % tau_h.t();
+
+    arma::mat acc2(nrun, p, arma::fill::zeros);      // Matrix of rejection probabilities of MH steps
+
+
+    // -----  Gibbs sampler  -----
+
+    for (size_t i = 0; i < 1; ++i) {
+
+        // Update error precisions
+        arma::mat Y_til = Y - B*theta.t() - eta*lambda.t();
+
+        double a = as + 0.5 * T;
+        arma::mat b = arma::ones(1, p) / (bs + 0.5 * arma::sum(arma::pow(Y_til, 2)));
+
+        arma::vec sig(p);
+        for (size_t j = 0; j < p; ++j)
+            sig(j) = arma::randg(arma::distr_param(a,b(j)));
+
+
+        // Update eta
+        arma::mat lmsg(p,k);
+        for (size_t j = 0; j < k; ++j)
+            lmsg.col(j) = lambda.col(j) % sig;
+        arma::mat veta_1 = arma::mat(k,k, arma::fill::eye) + lmsg.t() * lambda;
+
+        // TO BE CONTINUED
+
+        
     }
 
     return 0;
