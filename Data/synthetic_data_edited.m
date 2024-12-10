@@ -106,9 +106,9 @@ periodic_vars(1:length(per24), 5) = per24;
 %G here I save all the periodic genes I have identified, each column
 %corresponds to a periodic interval so col1 = 4 hours, col2 = 6 hours,
 %col3=8hours, col4 = 12 hours and col5 = 24 hours
-dlmwrite('periodicity.txt', periodic_vars, 'delimiter', ' ')
+%dlmwrite('periodicity.txt', periodic_vars, 'delimiter', ' ')
 %G here I save all the genes with just a period of 24 hours 
-dlmwrite("circadian.txt", per24, 'delimiter', ' ')
+%dlmwrite("circadian.txt", per24, 'delimiter', ' ')
 
 % -- % Generate matrix of latent factors eta w dim T \times k % -- %
 % The rows of eta correspond to the set of latent factors at time j's, thus
@@ -124,6 +124,8 @@ Y = zeros(T, p);
 for i = 1:p
     Y(:,i) = mvnrnd(B*THETA(i,:)' + eta*Lambda(i, :)', 0.5*eye(T)); % C*Gamma(i,:)' 
 end
+
+writematrix(Y, 'Y.csv')
 
 %G this is the real generative step where we make the synthetic data using
 %a normal centered in B*THETA(i,:)' + eta*Lambda(i, :)' and with variance
@@ -241,29 +243,12 @@ plot(unique(tij).*46, B(: , 9), 'Color', 'black')
 % hold on
 % plot(unique(tij).*46, B(: , 1), 'Color', 'black')
 
+save('Y')
 
-save(strcat('DesignMatrix'),'Y', 'tij', 'tg', 'p', 'q', 'T', 'B', 'eta', ...
-    'Lambda', 'THETA', 'Thetatilde', 'W', ...
-    'thr1', 'numeff', 'Bpred')
+% save(strcat('DesignMatrix'),'Y', 'tij', 'tg', 'p', 'q', 'T', 'B', 'eta', ...
+%     'Lambda', 'THETA', 'Thetatilde', 'W', ...
+%     'thr1', 'numeff', 'Bpred')
 % 
 % save(strcat('DesignMatrix'),'Y', 'tij', 'tg', 'p', 'q', 'T', 'Ttilde', 'B', 'C', 'eta', ...
 %     'Lambda', 'THETA', 'Gamma', 'Thetatilde', 'Gammatilde','W', 'Z', ...
 %     'thr1', 'thr2','numeff', 'Bpred')
-
-%% We prepare a plot of the trajectories for the mid-term presentation 
-
- %%% PLOT 1 %%%
-vec = [5, 28, 120, 198] 
-
-figure()
-
-for h = 1:4 % Visualise the trajectories of the first 25 circadian genes (lower if less than 25)
-    i = vec(h);
-    %cnt = cnt + 1';
-    subplot(2, 2, h)
-    plot(tij.*46, Y(:, i),'o', 'Color', 'k', 'MarkerSize',4)
-    line(tij.*46, Y(:, i), 'LineStyle', '-','Color', 'k','LineWidth', 1.5)
-    xlim([0, 46])
-    title(['True trajectory for protein ' num2str(i) ], 'FontSize', 24)
-    xlabel(['Time (in hours)'], 'FontSize', 24)
-end
