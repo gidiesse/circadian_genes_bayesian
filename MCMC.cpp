@@ -1,7 +1,3 @@
-//
-// Created by Giulia de Sanctis on 01/12/24.
-//
-
 #include <iostream>
 #include <armadillo>
 
