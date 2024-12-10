@@ -1,2 +1,10 @@
 .DS_Store
 Data/*
+
+# Ignored files Giulia
+CMakeLists.txt
+launch_program.sh
+
+# Ignored files Marta
+
+# Ignored files Ale
