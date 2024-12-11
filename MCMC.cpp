@@ -126,7 +126,78 @@ int main()
         arma::mat lmsg(p,k);
         for (size_t j = 0; j < k; ++j)
             lmsg.col(j) = lambda.col(j) % sig;
-        arma::mat veta_1 = arma::mat(k,k, arma::fill::eye) + lmsg.t() * lambda;
+        arma::mat V_eta_1 = arma::mat(k,k, arma::fill::eye) + lmsg.t() * lambda;
+        arma::mat T_chol_eta = arma::chol(V_eta_1);
+        arma::mat Q_eta; 
+        arma::mat R_eta;
+        arma::qr(Q_eta, R_eta, T_chol_eta);
+        arma::mat S_eta = arma::inv(R_eta); 
+        arma::mat V_eta = S_eta * S_eta.t();
+        arma::mat M_eta = (( Y - B * theta.t()) * lmsg) * V_eta;
+        eta = M_eta + arma::randn(T, k, arma::distr_param(0,1)) * S_eta.t();
+
+        // Update of Lambda (Rue and Held - 2005)
+        for (size_t h = 0; h < p; ++h) {
+            arma::mat V_lambda_1 = sig(h) * eta.t() * eta + W * arma::eye(2*q, 2*q) * W.t() + arma::diagmat(P_lam.row(h));
+            arma::mat T_chol_lambda = arma::chol(V_lambda_1);
+            arma::mat Q_lambda;  
+            arma::mat R_lambda;
+            arma::qr(Q_lambda, R_lambda, T_chol_lambda);
+            arma::mat S_lambda = arma::inv(R_lambda); 
+            arma::mat V_lambda= S_lambda * S_lambda.t();
+            arma::rowvec M_lambda = (sig(h) * eta.t() * (Y.col(h) - B * theta.row(h).t()) + 
+            W * arma::eye(2*q, 2*q) * theta_tilde.row(h).t()).t() * V_lambda; 
+            lambda.row(h) = M_lambda + arma::randn(1, k, arma::distr_param(0,1)) * S_lambda.t(); 
+        }
+
+        // Update phi_ih
+        arma::mat b_den_prod(p,k);
+        for (size_t j = 0; j < p; ++j) {
+            b_den_prod.row(j) = arma::pow(lambda.row(j),2) % tau_h.t();
+        }
+        a = df/2 + 0.5; 
+        b = arma::ones(p, k) / (df/2 + 0.5 * b_den_prod);
+        for (size_t j = 0; j < p; ++j) {
+            for (size_t l = 0; l < k; ++l) {  
+                phi_ih(j,l) = arma::randg(arma::distr_param(a,b(j,l)));
+            }
+        }
+
+        // Update delta and tau_h
+        arma::mat b_mat(p,k);
+         for (size_t j = 0; j < p; ++j) {
+            b_mat.row(j) = arma::pow(lambda.row(j),2) % phi_ih.row(j);
+        }
+        double ad = ad1 + 0.5 * p * k; 
+        double bd = bd1 + 0.5 * (1/delta(0)) * arma::sum(tau_h % arma::sum(b_mat).t());
+        delta(0) = arma::randg(arma::distr_param(ad,1/bd));
+        tau_h = arma::cumprod(delta);
+
+        for (size_t h = 1; h < k; ++h) {
+            ad = ad2 + 0.5 * p * (k-h);
+            bd = bd2 + 0.5 * (1/delta(h)) * arma::sum(tau_h(arma::span(h,tau_h.n_elem-1)) % arma::sum(b_mat.cols(h,arma::size(b_mat)[1]-1)).t());
+            delta(h) = arma::randg(arma::distr_param(ad, 1/bd));
+            tau_h = arma::cumprod(delta);
+        }
+        
+        // Update precision parameters 
+         arma::mat P_lam(p,k);                            // Precision of loadings rows
+         for (size_t i = 0; i < p; ++i) {
+            P_lam.row(i) = phi_ih.row(i) % tau_h.t();
+         }
+
+        // Update matrix W 
+        arma::mat V_W_1 = lambda.t() * lambda + arma::eye(k,k);
+        arma::mat T_chol_W = arma::chol(V_W_1);
+        arma::mat Q_W, R_W;
+        arma::qr(Q_W, R_W, T_chol_W);
+        arma::mat S_W = arma::inv(R_W); 
+        arma::mat V_W = S_W * S_W.t();
+
+        for (size_t h = 0; h < 2*q; ++h) {
+            arma::mat M_W = (lambda.t() * theta_tilde.col(h)).t() * V_W;
+            W.col(h) = (M_W + arma::randn(1,k, arma::distr_param(0,1)) * S_W.t()).t();
+        }
 
         // TO BE CONTINUED
 
