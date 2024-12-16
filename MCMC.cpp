@@ -1,9 +1,12 @@
 #include <iostream>
 #include <armadillo>
+#include <cmath> 
+#include <algorithm>
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print);
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print);
 void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print);
+arma::rowvec setdiff(const arma::vec& A, const arma::vec& B);
 
 int main()
 {
@@ -65,8 +68,8 @@ int main()
     // a: shape parameter, b: scale parameter
     arma::colvec sig = arma::randg(p, arma::distr_param(as, 1/bs));
 
-    arma::rowvec odd = arma::linspace<arma::rowvec>(1, 2*q - 1, q);
-    arma::rowvec even = arma::linspace<arma::rowvec>(2, 2*q, q);
+    arma::uvec odd = arma::linspace<arma::uvec>(1, 2*q - 1, q);
+    arma::uvec even = arma::linspace<arma::uvec>(0, 2*q-2, q);
 
     arma::mat lambda(p, k, arma::fill::zeros);              // Factor loadings
 
@@ -199,12 +202,92 @@ int main()
             W.col(h) = (M_W + arma::randn(1,k, arma::distr_param(0,1)) * S_W.t()).t();
         }
 
+        // Update theta_tilde 
+        for (size_t h=0; h<1; ++h) {
+            arma::mat V_theta_tilde_1 = sig(h) * B.t() * B + arma::eye(2*q,2*q);
+            arma::mat T_chol_theta_tilde = arma::chol(V_theta_tilde_1);
+            arma::mat Q_theta_tilde, R_theta_tilde;
+            arma::qr(Q_theta_tilde, R_theta_tilde, T_chol_theta_tilde);
+            arma::mat S_theta_tilde = arma::inv(R_theta_tilde); 
+            arma::mat V_theta_tilde = S_theta_tilde * S_theta_tilde.t();
+            arma::vec Y_cent = Y.col(h) - eta * lambda.row(h).t();
+            arma::mat W_trans = W.t();
+            arma::rowvec M_theta_tilde = (sig(h) * B.t() * Y_cent + W_trans * lambda.row(h).t()).t() * V_theta_tilde;
+            arma::rowvec theta_tilde_prop = M_theta_tilde + arma::randn(1,2*q,arma::distr_param(0,1)) * S_theta_tilde.t();
+            arma::rowvec theta_prop (2*q, arma::fill::zeros); 
+            //std::cout << thresholds.row(h);
+            arma::uvec index = arma::find(arma::sqrt(arma::pow(theta_tilde_prop.elem(odd).t(),2) + arma::pow(theta_tilde_prop.elem(even).t(),2)) >= thresholds.row(h));
+            if (index.n_elem != 0) {
+                arma::uvec odd_index = odd(index);
+                arma::uvec even_index = even(index); 
+                arma::uvec ind = arma::sort(arma::join_cols(odd_index, even_index));
+                theta_prop(ind) = theta_tilde_prop(ind);
+            }
+
+            double r = arma::as_scalar(arma::exp( -0.5 * (theta_tilde_prop.t() - W_trans * lambda.row(h).t()).t() * 
+            (theta_tilde_prop.t() - W_trans * lambda.row(h).t()) + 
+            0.5 * (theta_tilde.row(h).t() - W_trans*lambda.row(h).t()).t() * 
+            (theta_tilde.row(h).t() - W_trans*lambda.row(h).t()) - 
+            0.5 * sig(h) * (Y.col(h) - B * theta_prop.t() - eta * lambda.row(h).t()).t() * 
+            (Y.col(h) - B * theta_prop.t() - eta * lambda.row(h).t()) + 
+            0.5 * sig(h) * (Y.col(h) - B * theta.row(h).t() - eta * lambda.row(h).t()).t() * 
+            (Y.col(h) - B * theta.row(h).t() - eta * lambda.row(h).t()) - 
+            0.5 * (theta_tilde.row(h).t() - M_theta_tilde.t()).t() * 
+            V_theta_tilde_1 * (theta_tilde.row(h).t() - M_theta_tilde.t()) +
+            0.5 * (theta_tilde_prop.t() - M_theta_tilde.t()).t() * 
+            V_theta_tilde_1 * (theta_tilde_prop.t() - M_theta_tilde.t())));
+
+            bool u = arma::as_scalar(arma::randu(1)) > std::fmin(1,r);
+
+            arma::rowvec theta_acc = theta_tilde_prop - (theta_tilde_prop - theta_tilde.row(h)) * u; 
+            theta_tilde.row(h) = theta_acc; 
+            theta.row(h) = arma::zeros(1, 2*q);
+            arma::rowvec row_h = theta_tilde.row(h); 
+            index = arma::find(arma::sqrt(arma::pow(row_h.elem(odd).t(),2) + arma::pow(row_h.elem(even).t(),2)) >= thresholds.row(h));
+            if (index.n_elem != 0) {
+                arma::uvec odd_index = odd(index);
+                arma::uvec even_index = even(index); 
+                arma::uvec ind = arma::sort(arma::join_cols(odd_index, even_index));
+                for(const auto& id : ind) {
+                    theta(h,id) = theta_tilde(h,id);
+                }
+            }
+        }
+
+        for (size_t h = 0; h < q; ++h) {
+            arma::vec v1 = arma::regspace(0,1,2*q-1);
+            arma::vec v2 = arma::regspace(2*h-2,1,2*h-1);
+            arma::vec AA = arma::vectorise(B.cols(setdiff(v1,v2)));
+        }
+
+       int h=1;
+       arma::vec v1 = arma::regspace(0,1,2*q-1);
+       arma::vec v2 = arma::regspace(2*h-2,1,2*h-1);
+       
+       //std::cout << setdiff(v1, v2);
+
         // TO BE CONTINUED
-
-        
     }
+}
 
-    return 0;
+      
+
+    arma::rowvec setdiff(const arma::vec& A, const arma::vec& B) {
+        // Ottieni solo gli elementi unici e ordinati di A e B
+        arma::vec uniqueA = arma::unique(arma::sort(A));
+        arma::vec uniqueB = arma::unique(arma::sort(B));
+
+        // Vettore per contenere gli elementi di A che non sono in B
+        arma::vec diff;
+
+        // Trova gli elementi di uniqueA che non sono in uniqueB
+        for (const auto& elem : uniqueA) {
+            if (!arma::any(uniqueB == elem)) {
+                diff.insert_rows(diff.n_rows, arma::vec({elem}));
+            }
+        }
+
+        return diff.t();
 }
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print=true) {
