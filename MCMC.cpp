@@ -1,9 +1,12 @@
 #include <iostream>
 #include <armadillo>
+#include <cmath>
+#include <algorithm>
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print);
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print);
 void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print);
+arma::uvec setdiff(const arma::vec& A, const arma::vec& B);
 
 int main()
 {
@@ -65,8 +68,8 @@ int main()
     // a: shape parameter, b: scale parameter
     arma::colvec sig = arma::randg(p, arma::distr_param(as, 1/bs));
 
-    arma::rowvec odd = arma::linspace<arma::rowvec>(1, 2*q - 1, q);
-    arma::rowvec even = arma::linspace<arma::rowvec>(2, 2*q, q);
+    arma::uvec odd = arma::linspace<arma::uvec>(1, 2*q - 1, q);
+    arma::uvec even = arma::linspace<arma::uvec>(0, 2*q-2, q);
 
     arma::mat lambda(p, k, arma::fill::zeros);              // Factor loadings
 
@@ -109,7 +112,7 @@ int main()
 
     // -----  Gibbs sampler  -----
 
-    for (size_t i = 0; i < 1; ++i) {
+    for (size_t i = 0; i < nrun; ++i) {
 
         // Update error precisions
         arma::mat Y_til = Y - B*theta.t() - eta*lambda.t();
@@ -128,10 +131,10 @@ int main()
             lmsg.col(j) = lambda.col(j) % sig;
         arma::mat V_eta_1 = arma::mat(k,k, arma::fill::eye) + lmsg.t() * lambda;
         arma::mat T_chol_eta = arma::chol(V_eta_1);
-        arma::mat Q_eta; 
+        arma::mat Q_eta;
         arma::mat R_eta;
         arma::qr(Q_eta, R_eta, T_chol_eta);
-        arma::mat S_eta = arma::inv(R_eta); 
+        arma::mat S_eta = arma::inv(R_eta);
         arma::mat V_eta = S_eta * S_eta.t();
         arma::mat M_eta = (( Y - B * theta.t()) * lmsg) * V_eta;
         eta = M_eta + arma::randn(T, k, arma::distr_param(0,1)) * S_eta.t();
@@ -140,14 +143,14 @@ int main()
         for (size_t h = 0; h < p; ++h) {
             arma::mat V_lambda_1 = sig(h) * eta.t() * eta + W * arma::eye(2*q, 2*q) * W.t() + arma::diagmat(P_lam.row(h));
             arma::mat T_chol_lambda = arma::chol(V_lambda_1);
-            arma::mat Q_lambda;  
+            arma::mat Q_lambda;
             arma::mat R_lambda;
             arma::qr(Q_lambda, R_lambda, T_chol_lambda);
-            arma::mat S_lambda = arma::inv(R_lambda); 
+            arma::mat S_lambda = arma::inv(R_lambda);
             arma::mat V_lambda= S_lambda * S_lambda.t();
-            arma::rowvec M_lambda = (sig(h) * eta.t() * (Y.col(h) - B * theta.row(h).t()) + 
-            W * arma::eye(2*q, 2*q) * theta_tilde.row(h).t()).t() * V_lambda; 
-            lambda.row(h) = M_lambda + arma::randn(1, k, arma::distr_param(0,1)) * S_lambda.t(); 
+            arma::rowvec M_lambda = (sig(h) * eta.t() * (Y.col(h) - B * theta.row(h).t()) +
+            W * arma::eye(2*q, 2*q) * theta_tilde.row(h).t()).t() * V_lambda;
+            lambda.row(h) = M_lambda + arma::randn(1, k, arma::distr_param(0,1)) * S_lambda.t();
         }
 
         // Update phi_ih
@@ -155,10 +158,10 @@ int main()
         for (size_t j = 0; j < p; ++j) {
             b_den_prod.row(j) = arma::pow(lambda.row(j),2) % tau_h.t();
         }
-        a = df/2 + 0.5; 
+        a = df/2 + 0.5;
         b = arma::ones(p, k) / (df/2 + 0.5 * b_den_prod);
         for (size_t j = 0; j < p; ++j) {
-            for (size_t l = 0; l < k; ++l) {  
+            for (size_t l = 0; l < k; ++l) {
                 phi_ih(j,l) = arma::randg(arma::distr_param(a,b(j,l)));
             }
         }
@@ -168,7 +171,7 @@ int main()
          for (size_t j = 0; j < p; ++j) {
             b_mat.row(j) = arma::pow(lambda.row(j),2) % phi_ih.row(j);
         }
-        double ad = ad1 + 0.5 * p * k; 
+        double ad = ad1 + 0.5 * p * k;
         double bd = bd1 + 0.5 * (1/delta(0)) * arma::sum(tau_h % arma::sum(b_mat).t());
         delta(0) = arma::randg(arma::distr_param(ad,1/bd));
         tau_h = arma::cumprod(delta);
@@ -179,19 +182,19 @@ int main()
             delta(h) = arma::randg(arma::distr_param(ad, 1/bd));
             tau_h = arma::cumprod(delta);
         }
-        
-        // Update precision parameters 
+
+        // Update precision parameters
          arma::mat P_lam(p,k);                            // Precision of loadings rows
          for (size_t i = 0; i < p; ++i) {
             P_lam.row(i) = phi_ih.row(i) % tau_h.t();
          }
 
-        // Update matrix W 
+        // Update matrix W
         arma::mat V_W_1 = lambda.t() * lambda + arma::eye(k,k);
         arma::mat T_chol_W = arma::chol(V_W_1);
         arma::mat Q_W, R_W;
         arma::qr(Q_W, R_W, T_chol_W);
-        arma::mat S_W = arma::inv(R_W); 
+        arma::mat S_W = arma::inv(R_W);
         arma::mat V_W = S_W * S_W.t();
 
         for (size_t h = 0; h < 2*q; ++h) {
@@ -199,12 +202,151 @@ int main()
             W.col(h) = (M_W + arma::randn(1,k, arma::distr_param(0,1)) * S_W.t()).t();
         }
 
-        // TO BE CONTINUED
+        // Update theta_tilde
+        for (size_t h=0; h<p; ++h) {
+            arma::mat V_theta_tilde_1 = sig(h) * B.t() * B + arma::eye(2*q,2*q);
+            arma::mat T_chol_theta_tilde = arma::chol(V_theta_tilde_1);
+            arma::mat Q_theta_tilde, R_theta_tilde;
+            arma::qr(Q_theta_tilde, R_theta_tilde, T_chol_theta_tilde);
+            arma::mat S_theta_tilde = arma::inv(R_theta_tilde);
+            arma::mat V_theta_tilde = S_theta_tilde * S_theta_tilde.t();
+            arma::vec Y_cent = Y.col(h) - eta * lambda.row(h).t();
+            arma::mat W_trans = W.t();
+            arma::rowvec M_theta_tilde = (sig(h) * B.t() * Y_cent + W_trans * lambda.row(h).t()).t() * V_theta_tilde;
+            arma::rowvec theta_tilde_prop = M_theta_tilde + arma::randn(1,2*q,arma::distr_param(0,1)) * S_theta_tilde.t();
+            arma::rowvec theta_prop (2*q, arma::fill::zeros);
+            //std::cout << thresholds.row(h);
+            arma::uvec index = arma::find(arma::sqrt(arma::pow(theta_tilde_prop.elem(odd).t(),2) + arma::pow(theta_tilde_prop.elem(even).t(),2)) >= thresholds.row(h));
+            if (index.n_elem != 0) {
+                arma::uvec odd_index = odd(index);
+                arma::uvec even_index = even(index);
+                arma::uvec ind = arma::sort(arma::join_cols(odd_index, even_index));
+                theta_prop(ind) = theta_tilde_prop(ind);
+            }
 
-        
+            double r = arma::as_scalar(arma::exp( -0.5 * (theta_tilde_prop.t() - W_trans * lambda.row(h).t()).t() *
+            (theta_tilde_prop.t() - W_trans * lambda.row(h).t()) +
+            0.5 * (theta_tilde.row(h).t() - W_trans*lambda.row(h).t()).t() *
+            (theta_tilde.row(h).t() - W_trans*lambda.row(h).t()) -
+            0.5 * sig(h) * (Y.col(h) - B * theta_prop.t() - eta * lambda.row(h).t()).t() *
+            (Y.col(h) - B * theta_prop.t() - eta * lambda.row(h).t()) +
+            0.5 * sig(h) * (Y.col(h) - B * theta.row(h).t() - eta * lambda.row(h).t()).t() *
+            (Y.col(h) - B * theta.row(h).t() - eta * lambda.row(h).t()) -
+            0.5 * (theta_tilde.row(h).t() - M_theta_tilde.t()).t() *
+            V_theta_tilde_1 * (theta_tilde.row(h).t() - M_theta_tilde.t()) +
+            0.5 * (theta_tilde_prop.t() - M_theta_tilde.t()).t() *
+            V_theta_tilde_1 * (theta_tilde_prop.t() - M_theta_tilde.t())));
+
+            bool u = arma::as_scalar(arma::randu(1)) > std::fmin(1,r);
+
+            arma::rowvec theta_acc = theta_tilde_prop - (theta_tilde_prop - theta_tilde.row(h)) * u;
+            theta_tilde.row(h) = theta_acc;
+            theta.row(h) = arma::zeros(1, 2*q);
+            arma::rowvec row_h = theta_tilde.row(h);
+            index = arma::find(arma::sqrt(arma::pow(row_h.elem(odd).t(),2) + arma::pow(row_h.elem(even).t(),2)) >= thresholds.row(h));
+            if (index.n_elem != 0) {
+                arma::uvec odd_index = odd(index);
+                arma::uvec even_index = even(index);
+                arma::uvec ind = arma::sort(arma::join_cols(odd_index, even_index));
+                for(const auto& id : ind) {
+                    theta(h,id) = theta_tilde(h,id);
+                }
+            }
+        }
+
+        for (size_t h = 0; h < q; ++h) {
+            arma::vec v1 = arma::regspace(0,1,2*q-1);
+            arma::vec v2 = arma::regspace(2*(h+1)-2,1,2*(h+1)-1);
+            arma::vec AA = arma::vectorise(B.cols(setdiff(v1,v2))*theta.cols(setdiff(v1,v2)).t());
+            arma::vec BB = AA + arma::vectorise(B.cols(2*h,(2*h)+1)*theta_tilde.cols(2*h,(2*h)+1).t());
+            arma::vec comp1= arma::sqrt(arma::pow(theta_tilde.col(2*h),2)+arma::pow(theta_tilde.col((2*h)+1),2));
+            arma::vec Yprime= arma::vectorise(Y-eta*lambda.t());
+            arma::vec nn = arma::diagvec(arma::reshape(Yprime-BB,T,p).t()*arma::reshape(Yprime-BB,T,p));
+            arma::vec num= arma::exp(-0.5*(sig%nn))%comp1;
+            arma::vec dd = arma::diagvec(arma::reshape(Yprime-AA,T,p).t()*arma::reshape(Yprime-AA,T,p));
+            arma::vec den= num + arma::exp(-0.5*(sig%dd))%(kappa_theta-comp1);
+            arma::rowvec short2=(num/den).t();
+            arma::uvec pc = arma::find((comp1>kappa_theta));
+            if (pc.n_elem != 0) {
+                for(const auto& pp : pc) {
+                    thresholds(pp,h) = arma::randu(arma::distr_param(0.,kappa_theta));
+                }
+            }
+            v1 = arma::regspace(0,1,p-1);
+            arma::uvec npc= setdiff(v1,arma::conv_to<arma::vec>::from(pc));
+            arma::rowvec u=arma::randu(1,npc.n_elem);
+            for(const auto& pp : npc) {
+                // differentiate case where comp1(pp)=0 since Armadillo syntax does not allow generation from uniform (0,0)
+                if (comp1(pp)>0)
+                    thresholds(pp,h) = (u(pp)<=short2(pp)) * arma::randu(arma::distr_param(0.,comp1(pp)))+ (u(pp)>=short2(pp)) * arma::randu(arma::distr_param(comp1(pp),kappa_theta));
+                else
+                    thresholds(pp,h) = (u(pp)>=short2(pp)) * arma::randu(arma::distr_param(comp1(pp),kappa_theta));
+            }
+            theta.cols(2*h,2*h+1)= arma::zeros(p,2);
+            arma::uvec index=arma::find(comp1>=thresholds.col(h));
+
+            if (index.n_elem != 0) {
+                for(const auto& pp : index) {
+
+                    theta(pp, arma::span(0,2 * h )) = theta_tilde(pp, arma::span(0, 2 * h ));
+                }
+            }
+        }
+
+        double prob = 1 / std::exp(b0 + b1 * i);
+        double uu = arma::as_scalar(arma::randu(1));
+        arma::rowvec lind = arma::conv_to<arma::rowvec>::from(arma::sum(arma::abs(lambda) < epsilon) / p);  
+        arma::urowvec vettor = (lind >= prop);
+        double num = arma::sum(vettor);
+        //std::cout << arma::all(lind < 0.995) << std::endl; 
+       
+        if (uu < prob) {
+            if (i > 20 && num == 0 && arma::all(lind < 0.995)) {
+               ++k;
+               lambda.col(k) = arma::zeros(p,1);
+               eta.col(k) = arma::randn(T,1);
+               W.row(k) = arma::randn(1,2*q);
+               phi_ih.col(k) = arma::randg(p, 1, arma::distr_param(df/2, 2/df));
+               delta(k) = arma::randg(arma::distr_param(ad2,1/bd2));
+               tau_h = arma::cumprod(delta);
+               P_lam = phi_ih % tau_h.t();
+            }
+            else if (num > 0) {
+                arma::vec v1 = arma::regspace(0,1,k-1);
+                arma::vec v2 = arma::conv_to<arma::vec>::from(arma::find(vettor));
+                arma::uvec non_red = setdiff(v1,v2);
+                k = std::max(static_cast<double>(k)-num,1.);
+                lambda = lambda.cols(non_red);
+                W = W.rows(non_red);
+                phi_ih = phi_ih.cols(non_red);
+                eta = eta.cols(non_red);
+                delta = delta(non_red);
+                tau_h = arma::cumprod(delta);
+                P_lam = phi_ih % tau_h.t();
+            }
+        }
+        std::cout << "i: " << i << std::endl; 
+        std::cout << "k: " << k << std::endl; 
     }
+    
+}
 
-    return 0;
+    arma::uvec setdiff(const arma::vec& A, const arma::vec& B) {
+        // Ottieni solo gli elementi unici e ordinati di A e B
+        arma::vec uniqueA = arma::unique(arma::sort(A));
+        arma::vec uniqueB = arma::unique(arma::sort(B));
+
+        // Vettore per contenere gli elementi di A che non sono in B
+        arma::uvec diff;
+
+        // Trova gli elementi di uniqueA che non sono in uniqueB
+        for (const auto& elem : uniqueA) {
+            if (!arma::any(uniqueB == elem)) {
+                diff.insert_rows(diff.n_rows, arma::uvec({static_cast<unsigned long long> (elem)}));
+            }
+        }
+
+        return diff;
 }
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print=true) {
