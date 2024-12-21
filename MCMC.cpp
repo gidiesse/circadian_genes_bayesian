@@ -2,6 +2,7 @@
 #include <armadillo>
 #include <cmath>
 #include <algorithm>
+#include<chrono>
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print);
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print);
@@ -10,6 +11,7 @@ arma::uvec setdiff(const arma::vec& A, const arma::vec& B);
 
 int main()
 {
+    auto start=std::chrono::high_resolution_clock::now();
     std::string file_path = "../Data/";
     arma::arma_rng::set_seed(230518);
 
@@ -113,14 +115,12 @@ int main()
     // -----  Gibbs sampler  -----
 
     for (size_t i = 0; i < nrun; ++i) {
-
         // Update error precisions
         arma::mat Y_til = Y - B*theta.t() - eta*lambda.t();
 
         double a = as + 0.5 * T;
         arma::mat b = arma::ones(1, p) / (bs + 0.5 * arma::sum(arma::pow(Y_til, 2)));
 
-        arma::vec sig(p);
         for (size_t j = 0; j < p; ++j) {
             sig(j) = arma::randg(arma::distr_param(a, b(j)));
         }
@@ -139,7 +139,6 @@ int main()
         arma::mat M_eta = (( Y - B * theta.t()) * lmsg) * V_eta;
         eta = M_eta + arma::randn(T, k, arma::distr_param(0.,1.)) * S_eta.t();
 
-        std::cerr << "Update eta, iteration = " << i << std::endl;
 
         // Update of Lambda (Rue and Held - 2005)
         for (size_t h = 0; h < p; ++h) {
@@ -154,7 +153,6 @@ int main()
             lambda.row(h) = M_lambda + arma::randn(1, k, arma::distr_param(0.,1.)) * S_lambda.t();
         }
 
-        std::cerr << "Update Lambda, iteration = " << i << std::endl;
 
         // Update phi_ih
         arma::mat b_den_prod(p,k);
@@ -169,7 +167,6 @@ int main()
             }
         }
 
-        std::cerr << "Update phi_ih, iteration = " << i << std::endl;
 
         // Update delta and tau_h
         arma::mat b_mat(p,k);
@@ -188,15 +185,11 @@ int main()
             tau_h = arma::cumprod(delta);
         }
 
-        std::cerr << "Update delta and tau_h, iteration = " << i << std::endl;
 
         // Update precision parameters
-        arma::mat P_lam(p,k);                            // Precision of loadings rows
         for (size_t j = 0; j < p; ++j) {
             P_lam.row(j) = phi_ih.row(j) % tau_h.t();
         }
-
-        std::cerr << "Update precision parameters, iteration = " << i << std::endl;
 
         // Update matrix W
         arma::mat V_W_1 = lambda.t() * lambda + arma::eye(k,k);
@@ -211,7 +204,6 @@ int main()
             W.col(h) = (M_W + arma::randn(1,k, arma::distr_param(0.,1.)) * S_W.t()).t();
         }
 
-        std::cerr << "Update W, iteration = " << i << std::endl;
 
         // Update theta_tilde
         for (size_t h = 0; h < p; ++h) {
@@ -269,7 +261,6 @@ int main()
             }
         }
 
-        std::cerr << "Update Theta tilde, iteration = " << i << std::endl;
 
         // Update of thresholds of Theta
         for (size_t h = 0; h < q; ++h) {
@@ -320,7 +311,6 @@ int main()
             }
         }
 
-        std::cerr << "Update thresholds of theta, iteration = " << i << std::endl;
 
         double prob = 1 / std::exp(b0 + b1 * i);
         double uu = arma::as_scalar(arma::randu(1));
@@ -338,7 +328,11 @@ int main()
                 delta.resize(k);
                 delta(k-1) = arma::randg(arma::distr_param(ad2,1/bd2));
                 tau_h = arma::cumprod(delta);
-                P_lam = phi_ih % repmat(tau_h.t(), phi_ih.n_rows, 1);
+                P_lam.insert_cols(k-1, arma::zeros(p,1));
+                for (size_t j = 0; j < p; ++j) {
+                    P_lam.row(j) = phi_ih.row(j) % tau_h.t();
+                }
+
             }
             else if (num > 0) {
                 arma::vec v1 = arma::regspace(0,1,k-1);
@@ -351,15 +345,24 @@ int main()
                 eta = eta.cols(non_red);
                 delta = delta(non_red);
                 tau_h = arma::cumprod(delta);
-                P_lam = phi_ih % tau_h.t();
+                P_lam = arma::zeros(p,k);
+                for (size_t j = 0; j < p; ++j) {
+                    P_lam.row(j) = phi_ih.row(j) % tau_h.t();
+                }
+               // std::cout<<"aiuto"<<std::endl;
             }
         }
-        std::cerr << "Update adaptive, iteration = " << i << std::endl;
 
-        std::cout << "i: " << i << std::endl;
-        std::cout << "k: " << k << std::endl;
+        //std::cerr << "Update adaptive, iteration = " << i << std::endl;
+
+        //std::cout << "i: " << i << std::endl;
+        //std::cout << "k: " << k << std::endl;
+
     }
 
+    auto end=std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff=end-start;
+    std::cout << diff.count() << std::endl;
     return 0;
 }
 
