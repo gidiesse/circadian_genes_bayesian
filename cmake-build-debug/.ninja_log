@@ -1,0 +1,9 @@
+# ninja log v5
+3	26061	7564364897787555	CMakeFiles/Bayesian_Statistics_project.dir/MCMC.cpp.obj	62fc7c40c56b6a0b
+26106	30304	7564364943521312	Bayesian_Statistics_project.exe	47b8c2f35fda7321
+15	28966	7564784533058337	CMakeFiles/Bayesian_Statistics_project.dir/MCMC.cpp.obj	62fc7c40c56b6a0b
+28967	32840	7564784571897078	Bayesian_Statistics_project.exe	47b8c2f35fda7321
+11	19728	7564785325584787	CMakeFiles/Bayesian_Statistics_project.dir/MCMC.cpp.obj	62fc7c40c56b6a0b
+19787	22752	7564785357188853	Bayesian_Statistics_project.exe	47b8c2f35fda7321
+10	12123	7564785868606699	CMakeFiles/Bayesian_Statistics_project.dir/MCMC.cpp.obj	62fc7c40c56b6a0b
+12124	15334	7564785900902118	Bayesian_Statistics_project.exe	47b8c2f35fda7321
