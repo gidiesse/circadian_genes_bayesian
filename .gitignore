@@ -4,6 +4,7 @@ Data/*
 # Ignored files Giulia
 CMakeLists.txt
 launch_program.sh
+.idea
 
 # Ignored files Marta
 
