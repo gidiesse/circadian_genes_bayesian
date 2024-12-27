@@ -18,6 +18,8 @@ int main()
     arma::mat Y;
     load_matrix(file_path, "Y.csv", Y, false);
 
+    int max_latent_factors = 0; 
+
     int p = Y.n_cols;       // p = number of proteins
     int T = Y.n_rows;       // T = number of time points
 
@@ -115,6 +117,8 @@ int main()
     // -----  Gibbs sampler  -----
 
     for (size_t i = 0; i < nrun; ++i) {
+        auto start_it=std::chrono::high_resolution_clock::now();
+
         // Update error precisions
         arma::mat Y_til = Y - B*theta.t() - eta*lambda.t();
 
@@ -143,6 +147,9 @@ int main()
         // Update of Lambda (Rue and Held - 2005)
         for (size_t h = 0; h < p; ++h) {
             arma::mat V_lambda_1 = sig(h) * eta.t() * eta + W * arma::eye(2*q, 2*q) * W.t() + arma::diagmat(P_lam.row(h));
+            //std::cout << "term corresponding to diag(Plam(h,:)) " << std::endl; 
+            //arma::diagmat(P_lam.row(h)).brief_print(); 
+            //std::cout << "dimension of V_lambda_1 " << size(V_lambda_1) << std::endl; 
             arma::mat T_chol_lambda = arma::chol(V_lambda_1);
             arma::mat Q_lambda, R_lambda;
             arma::qr(Q_lambda, R_lambda, T_chol_lambda);
@@ -312,9 +319,14 @@ int main()
         }
 
 
+        // Make adaptations
+        // This part adapts the number of latent factors at the end of each run of the MCMC 
+
         double prob = 1 / std::exp(b0 + b1 * i);
         double uu = arma::as_scalar(arma::randu(1));
-        arma::rowvec lind = arma::conv_to<arma::rowvec>::from(arma::sum(arma::abs(lambda) < epsilon) / p);
+        arma::rowvec lind = arma::conv_to<arma::rowvec>::from(arma::sum(arma::conv_to<arma::Mat<double>>::from(arma::abs(lambda) < epsilon), 0)) / static_cast<double>(p);
+        //std::cout << "lind_ale: " << std::endl;
+        //lind_ale.print();
         arma::urowvec vettor = (lind >= prop);
         double num = arma::sum(vettor);
 
@@ -353,16 +365,26 @@ int main()
             }
         }
 
+        if (k > max_latent_factors) 
+            max_latent_factors = k; 
+
+        std::cout << "number of latent factors is: " << k << std::endl; 
+
         //std::cerr << "Update adaptive, iteration = " << i << std::endl;
 
         //std::cout << "i: " << i << std::endl;
         //std::cout << "k: " << k << std::endl;
+        auto end_it=std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> it_time = end_it - start_it;
+        //std::cout << "iteration: " << i << " took " << it_time.count() << std::endl; 
 
     }
 
-    auto end=std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> diff=end-start;
+    auto final=std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff=final-start;
     std::cout << diff.count() << std::endl;
+
+    std::cout << "Max number of latent factors reached: " << max_latent_factors << std::endl; 
     return 0;
 }
 
