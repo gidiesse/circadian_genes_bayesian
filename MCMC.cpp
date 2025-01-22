@@ -2,21 +2,53 @@
 #include <armadillo>
 #include <cmath>
 #include <algorithm>
-#include<chrono>
+#include <chrono>
+#include <fstream>
+#include <vector>
+
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print);
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print);
 void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print);
 arma::uvec setdiff(const arma::vec& A, const arma::vec& B);
+void write_matrix (const std::string& file_path, arma::mat &mat); 
 
 int main()
 {
     auto start=std::chrono::high_resolution_clock::now();
     std::string file_path = "../Data/";
-    arma::arma_rng::set_seed(230518);
+    std::string file_path_data = "/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/Data";
+    arma::arma_rng::set_seed(250);
 
     arma::mat Y;
     load_matrix(file_path, "Y.csv", Y, false);
+
+    // Questa sezione l'avevo scritta per caricare i dati sintetici da Matlab, per ora la lascio commentata perchè potrebbe riservire
+    // We load all the data except one thing, so that everything except for one thing is kept constant
+    /* 
+    arma::mat B_synth;
+    load_matrix(file_path_data, "B.csv", B_synth, false);
+    arma::mat B_pred_synth; 
+    load_matrix(file_path_data, "Bpred.csv", B_pred_synth, false);
+    arma::mat eta_synth; 
+    load_matrix(file_path_data, "eta.csv", eta_synth, false);
+    arma::mat lambda_synth;
+    load_matrix(file_path_data, "lambda.csv", lambda_synth, false);
+    arma::vec tg_synth;
+    load_vector(file_path_data, "tg.csv", tg_synth, false);
+    arma::mat theta_synth; 
+    load_matrix(file_path_data, "THETA.csv", theta_synth, false);
+    arma::mat theta_tilde_synth;
+    load_matrix(file_path_data, "Thetatilde.csv", theta_tilde_synth, false);
+    arma::mat thresholds_synth;
+    load_matrix(file_path_data, "thr1.csv", thresholds_synth, false);
+    arma::vec t_ij_synth;
+    load_vector(file_path_data, "tij.csv", t_ij_synth, false);
+    arma::mat W_synth; 
+    load_matrix(file_path_data, "W.csv", W_synth, false);
+
+    std::cout << " All the data has been loaded correctly " << std::endl;  
+    */
 
     int max_latent_factors = 0; 
 
@@ -27,9 +59,8 @@ int main()
 
     arma::vec t_ij = arma::linspace<arma::vec>(0, 46, 24);
     t_ij = t_ij / arma::max(t_ij);                              // standardized time points
-
+   
     arma::vec tg = arma::linspace<arma::vec>(0, 46, 461) / 46;  // standardized prediction grid
-
     arma::mat B(T, 2*q, arma::fill::zeros);                     // design matrix (data)
     arma::mat B_pred(tg.n_elem, 2*q, arma::fill::zeros);        // design matrix (estimation/prediction)
 
@@ -80,8 +111,8 @@ int main()
     arma::mat eta = arma::mvnrnd(arma::colvec(k, arma::fill::zeros),
                                  arma::eye(k, k), T).t();   // Latent factors
 
-    arma::mat W = arma::mvnrnd(arma::colvec(k, arma::fill::zeros),
-                               arma::eye(k, k), 2*q);
+    arma::mat W = arma::mvnrnd(arma::colvec(k, arma::fill::zeros), arma::eye(k, k), 2*q);
+    arma::mat testy_test = arma::mvnrnd(arma::colvec(k, arma::fill::zeros), arma::eye(k, k), 2*q);
 
     arma::mat theta_tilde = lambda * W;                 // Matrix of un-shrunk coefficients
     arma::mat theta(p, 2*q, arma::fill::zeros);         // Matrix of (fixed) basis functions coefficients
@@ -113,10 +144,9 @@ int main()
 
     arma::mat acc2(nrun, p, arma::fill::zeros);      // Matrix of rejection probabilities of MH steps
 
-
     // -----  Gibbs sampler  -----
 
-    for (size_t i = 0; i < nrun; ++i) {
+   for (size_t i = 0; i < nrun; ++i) {
         auto start_it=std::chrono::high_resolution_clock::now();
 
         // Update error precisions
@@ -128,7 +158,7 @@ int main()
         for (size_t j = 0; j < p; ++j) {
             sig(j) = arma::randg(arma::distr_param(a, b(j)));
         }
-
+        
         // Update eta
         arma::mat lmsg(p,k);
         for (size_t j = 0; j < k; ++j) {
@@ -143,7 +173,7 @@ int main()
         arma::mat M_eta = (( Y - B * theta.t()) * lmsg) * V_eta;
         eta = M_eta + arma::randn(T, k, arma::distr_param(0.,1.)) * S_eta.t();
 
-
+         
         // Update of Lambda (Rue and Held - 2005)
         for (size_t h = 0; h < p; ++h) {
             arma::mat V_lambda_1 = sig(h) * eta.t() * eta + W * arma::eye(2*q, 2*q) * W.t() + arma::diagmat(P_lam.row(h));
@@ -159,15 +189,14 @@ int main()
                                      W * arma::eye(2*q, 2*q) * theta_tilde.row(h).t()).t() * V_lambda;
             lambda.row(h) = M_lambda + arma::randn(1, k, arma::distr_param(0.,1.)) * S_lambda.t();
         }
-
-
+        
         // Update phi_ih
         arma::mat b_den_prod(p,k);
         for (size_t j = 0; j < p; ++j) {
             b_den_prod.row(j) = arma::pow(lambda.row(j),2) % tau_h.t();
         }
         a = df/2 + 0.5;
-        b = arma::ones(p, k) / (df/2 + 0.5 * b_den_prod);
+        b = arma::ones(p, k) / (df/2 + b_den_prod);
         for (size_t j = 0; j < p; ++j) {
             for (size_t l = 0; l < k; ++l) {
                 phi_ih(j,l) = arma::randg(arma::distr_param(a,b(j,l)));
@@ -325,8 +354,6 @@ int main()
         double prob = 1 / std::exp(b0 + b1 * i);
         double uu = arma::as_scalar(arma::randu(1));
         arma::rowvec lind = arma::conv_to<arma::rowvec>::from(arma::sum(arma::conv_to<arma::Mat<double>>::from(arma::abs(lambda) < epsilon), 0)) / static_cast<double>(p);
-        //std::cout << "lind_ale: " << std::endl;
-        //lind_ale.print();
         arma::urowvec vettor = (lind >= prop);
         double num = arma::sum(vettor);
 
@@ -361,7 +388,6 @@ int main()
                 for (size_t j = 0; j < p; ++j) {
                     P_lam.row(j) = phi_ih.row(j) % tau_h.t();
                 }
-               // std::cout<<"aiuto"<<std::endl;
             }
         }
 
@@ -369,22 +395,21 @@ int main()
             max_latent_factors = k; 
 
         std::cout << "number of latent factors is: " << k << std::endl; 
-
-        //std::cerr << "Update adaptive, iteration = " << i << std::endl;
-
-        //std::cout << "i: " << i << std::endl;
-        //std::cout << "k: " << k << std::endl;
         auto end_it=std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> it_time = end_it - start_it;
-        //std::cout << "iteration: " << i << " took " << it_time.count() << std::endl; 
+        
+
 
     }
 
     auto final=std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff=final-start;
-    std::cout << diff.count() << std::endl;
 
     std::cout << "Max number of latent factors reached: " << max_latent_factors << std::endl; 
+
+    write_matrix ("/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/c++_results/eta_seed_250.csv", eta); 
+    write_matrix ("/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/c++_results/lambda_seed_250.csv", lambda); 
+   
     return 0;
 }
 
@@ -407,23 +432,39 @@ arma::uvec setdiff(const arma::vec& A, const arma::vec& B) {
 }
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print=true) {
-    std::string specific_path = file_path + file_name;
+    std::string specific_path = file_path + "/" + file_name; 
     mat.load(specific_path, arma::csv_ascii);
     if (print == true)
         mat.print();
 }
 
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print=true) {
-    std::string specific_path = file_path + file_name;
+    std::string specific_path = file_path + "/" + file_name; 
     vec.load(specific_path, arma::csv_ascii);
     if (print == true)
         vec.raw_print();
 }
 
 void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print=true) {
-    std::string specific_path = file_path + file_name;
+    std::string specific_path = file_path + "/" + file_name; 
     std::ifstream num_file(specific_path);
     num_file >> num;
     if (print == true)
         std::cout << num << std::endl;
+}
+
+void write_matrix (const std::string& file_path, arma::mat &mat) {
+    std::ofstream to_write(file_path);
+
+    for (size_t i = 0; i < mat.n_rows; ++i) {
+        for (size_t j = 0; j < mat.n_cols; ++j) {
+            to_write << mat(i,j);
+            if (j < mat.n_cols - 1) {
+                to_write << ",";
+            }
+        }
+        to_write << std::endl;
+    }
+    to_write.close();
+    return; 
 }
