@@ -4,17 +4,20 @@
 #include <algorithm>
 #include <chrono>
 #include <RcppArmadillo.h>
+#include <filesystem>
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print);
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print);
 void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print);
 arma::uvec setdiff(const arma::vec& A, const arma::vec& B);
 void normalizeMatrix(arma::mat& matrix);
+void write_matrix (const std::string& file_path, arma::mat &mat,const std::string& name_csv);
 
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::export]]
-arma::mat MCMC_Circadian_Genes(arma::mat Y)
+void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::string& file_path,const int nrun,std::vector<std::string> vars_to_save)
+
 {
     auto start=std::chrono::high_resolution_clock::now();
     //std::string file_path = "../Data/";
@@ -30,11 +33,14 @@ arma::mat MCMC_Circadian_Genes(arma::mat Y)
     Y=Y.t();
     int p = Y.n_cols;       // p = number of proteins
     int T = Y.n_rows;       // T = number of time points
+    std::cout<<p<<std::endl;
+    std::cout<<T<<std::endl;
     const int q = 5;
     // number of sin (cos) bases, for a total of 2q bases - no intercept
-    arma::vec t_ij = arma::linspace<arma::vec>(0, 48, 13);
+  //  arma::vec t_ij = arma::linspace<arma::vec>(0, 48, 13);
     t_ij = t_ij / arma::max(t_ij);// standardized time points
-    arma::vec tg = arma::linspace<arma::vec>(0, 150, 1500) / 150;  // standardized prediction grid
+    std::cout<<t_ij<<std::endl;
+   // arma::vec tg = arma::linspace<arma::vec>(0, 150, 1500) / 150;  // standardized prediction grid
     arma::mat B(T, 2*q, arma::fill::zeros);                     // design matrix (data)
     arma::mat B_pred(tg.n_elem, 2*q, arma::fill::zeros);        // design matrix (estimation/prediction)
 
@@ -51,7 +57,7 @@ arma::mat MCMC_Circadian_Genes(arma::mat Y)
     }
     // Define global constants
     int rep = 1;
-    int nrun = 1000;                   // Number of iteration
+    //int nrun = 1000;                   // Number of iteration
     int burn = 1000;                    // Burn-in
     int thin = 5;                       // Thinning
     double sp = (nrun - burn) / thin;   // Number of posterior samples
@@ -378,13 +384,37 @@ arma::mat MCMC_Circadian_Genes(arma::mat Y)
         //std::cout << "iteration: " << i << " took " << it_time.count() << std::endl;
 
     }
+    std::unordered_map<std::string, arma::mat> map_matrix;
+    //std::unordered_map<std::string, arma::vec> map_vec;
+    map_matrix["theta"] = theta;
+    map_matrix["theta_tilde"] = theta_tilde;
+    map_matrix["eta"] = eta;
+    map_matrix["W"] = W;
+    map_matrix["B_pred"] = B_pred;
+    map_matrix["B"] = B;
+
+    for (std::size_t i = 0; i < vars_to_save.size(); ++i) {
+        auto it = map_matrix.find(vars_to_save[i]);
+        if (it == map_matrix.end()) {
+            std::cerr << "The variable you are looking for doesn't exist" << std::endl;
+        }
+        else
+            write_matrix(file_path,it->second,it->first);
+    }
+    std::cout<<"aiuto"<<std::endl;
+    //write_matrix (file_path,W);
+    //write_matrix (file_path,lambda);
+    //write_matrix (file_path,eta);
+    //write_matrix (file_path,tau_h);
+    //write_matrix (file_path,B);
+    //write_matrix (file_path,B_pred);
 
     auto final=std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff=final-start;
     std::cout << diff.count() << std::endl;
+    std::cout<<"aiuto2"<<std::endl;
 
     std::cout << "Max number of latent factors reached: " << max_latent_factors << std::endl;
-    return Y;
 }
 // [[Rcpp::export]]
 arma::uvec setdiff(const arma::vec& A, const arma::vec& B) {
@@ -441,4 +471,27 @@ void normalizeMatrix(arma::mat& matrix) {
         // Se min == max, rendi tutti gli elementi 0 (o un altro valore a scelta)
         matrix.fill(0.0);
     }
+}
+// [[Rcpp::export]]
+void write_matrix (const std::string& file_path, arma::mat& mat, const std::string& name_csv) {
+#ifdef _WIN32
+    std::string separator = "\\";
+#else
+    std::string separator = "/";
+#endif
+    std::string full_path = file_path + separator + name_csv + ".csv";
+    std::cout<<full_path<<std::endl;
+    std::ofstream to_write(full_path);
+
+    for (size_t i = 0; i < mat.n_rows; ++i) {
+        for (size_t j = 0; j < mat.n_cols; ++j) {
+            to_write << mat(i,j);
+            if (j < mat.n_cols - 1) {
+                to_write << ",";
+            }
+        }
+        to_write << std::endl;
+    }
+    to_write.close();
+    return;
 }
