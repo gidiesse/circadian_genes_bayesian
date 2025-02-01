@@ -401,18 +401,10 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
         else
             write_matrix(file_path,it->second,it->first);
     }
-    std::cout<<"aiuto"<<std::endl;
-    //write_matrix (file_path,W);
-    //write_matrix (file_path,lambda);
-    //write_matrix (file_path,eta);
-    //write_matrix (file_path,tau_h);
-    //write_matrix (file_path,B);
-    //write_matrix (file_path,B_pred);
 
     auto final=std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff=final-start;
     std::cout << diff.count() << std::endl;
-    std::cout<<"aiuto2"<<std::endl;
 
     std::cout << "Max number of latent factors reached: " << max_latent_factors << std::endl;
 }
@@ -480,7 +472,6 @@ void write_matrix (const std::string& file_path, arma::mat& mat, const std::stri
     std::string separator = "/";
 #endif
     std::string full_path = file_path + separator + name_csv + ".csv";
-    std::cout<<full_path<<std::endl;
     std::ofstream to_write(full_path);
 
     for (size_t i = 0; i < mat.n_rows; ++i) {

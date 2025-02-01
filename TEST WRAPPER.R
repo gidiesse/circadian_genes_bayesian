@@ -1,7 +1,7 @@
 library(Rcpp)
 library(RcppArmadillo)
 data <- read.csv("Yreal.csv", check.names = FALSE)
-sourceCpp("MCMC2112.cpp")
+sourceCpp("MCMC.cpp")
 Sys.setenv(PKG_CXX11FLAGS = "-O3 -march=native")
 #update.packages(type = "source", ask = FALSE)
 data <- data.frame(lapply(data, function(x) as.numeric(gsub(",", ".", x))))
