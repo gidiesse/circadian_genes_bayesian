@@ -13,7 +13,7 @@ tg <- tg/1500
 file_path='C:\\Users\\aless\\OneDrive - Politecnico di Milano\\foto\\Desktop\\Università\\Magistrale\\2° anno\\1° semestre\\Bayesian statistics\\Bayesian Statistics project\\TEST'
 #scrivi il nome delle variabili che ti interessano sotto forma di stringa
 #write.csv(clean_data, "C:\\Users\\aless\\OneDrive - Politecnico di Milano\\foto\\Desktop\\Università\\Magistrale\\2° anno\\1° semestre\\Bayesian statistics\\Bayesian Statistics project\\Data\\clean_data.csv", row.names = FALSE,quote=FALSE)
-vec=c('Thetaout','Lambdaout','Etaout')
+vec=c('Thetaout_tot','Lambdaout','Etaout','theta_tilde','thresholds','B') 
 MCMC_Circadian_Genes(clean_data,t_ij,tg,file_path,500,vec)
 
 
