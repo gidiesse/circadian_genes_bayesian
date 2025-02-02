@@ -413,6 +413,7 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
     map_matrix["Thetaout"] = Thetaout;
     map_matrix["Thetaout_tot"] = Thetaout_tot;
     map_matrix["Etaout"] = Etaout;
+    map_matrix["thresholds"]=thresholds;
 
 
     for (std::size_t i = 0; i < vars_to_save.size(); ++i) {
