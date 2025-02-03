@@ -170,7 +170,7 @@ for h = 1:p
 end
 
 ind = 1:p; ind = ind';
-[A_C ordC ] = sort(circardian', 'descend'); %A=probabilità ordinate di essere un gene periodico, ordC=indice originale corrispondente
+[A_C ordC ] = sort(circardian', 'descend'); %A_C=probabilità ordinate di essere un gene circadiano, ordC=indice originale corrispondente
 circ_prot = ind(ordC);
 beta = 1 - A_C;
 list = [A_C 1 - A_C ordC];
