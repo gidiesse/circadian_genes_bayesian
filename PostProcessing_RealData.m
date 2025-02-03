@@ -12,12 +12,10 @@
 thetaout = readmatrix('Thetaout_tot.csv'); %Thetaout_seed_250.csv
 Lambdaout = readmatrix('Lambdaout.csv'); %Lambdaout_seed_250.csv
 Etaout = readmatrix('Etaout.csv');  %Etaout_seed_250.csv
-% queste sono date dall'ultimo update dell'MCMC:
-Thetatilde = readmatrix('theta_tilde.csv'); 
 B = readmatrix('B.csv');
-thr1 = readmatrix('thresholds.csv'); 
+Thetatilde = readmatrix('theta_tilde.csv'); % matrice data dall'ultimo update dell'MCMC
+thr1 = readmatrix('thresholds.csv'); % matrice data dall'ultimo update dell'MCMC
 
-%data=readmatrix('Yreal.csv');
 % Leggi il file come una tabella
 opts = detectImportOptions('Yreal.csv', 'Delimiter', ',');  % Modifica il delimitatore se necessario
 dataTable = readtable('Yreal.csv', opts);
