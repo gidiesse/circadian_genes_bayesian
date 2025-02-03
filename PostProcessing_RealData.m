@@ -12,6 +12,7 @@
 thetaout = readmatrix('Thetaout_tot.csv'); %Thetaout_seed_250.csv
 Lambdaout = readmatrix('Lambdaout.csv'); %Lambdaout_seed_250.csv
 Etaout = readmatrix('Etaout.csv');  %Etaout_seed_250.csv
+
 B = readmatrix('B.csv');
 Thetatilde = readmatrix('theta_tilde.csv'); % matrice data dall'ultimo update dell'MCMC
 thr1 = readmatrix('thresholds.csv'); % matrice data dall'ultimo update dell'MCMC
