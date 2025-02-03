@@ -12,7 +12,7 @@
 thetaout = readmatrix('Thetaout_tot.csv'); %Thetaout_seed_250.csv
 Lambdaout = readmatrix('Lambdaout.csv'); %Lambdaout_seed_250.csv
 Etaout = readmatrix('Etaout.csv');  %Etaout_seed_250.csv
-% in queste burnin e thinning non sono considerati:
+% queste sono date dall'ultimo update dell'MCMC:
 Thetatilde = readmatrix('theta_tilde.csv'); 
 B = readmatrix('B.csv');
 thr1 = readmatrix('thresholds.csv'); 
