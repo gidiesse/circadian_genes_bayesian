@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <chrono>
 #include <RcppArmadillo.h>
-#include <filesystem>
 
 void load_matrix (const std::string& file_path, const std::string& file_name, arma::mat &mat, bool print);
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print);
@@ -58,7 +57,7 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
     // Define global constants
     int rep = 1;
     //int nrun = 1000;                   // Number of iteration
-    int burn = 1000;                    // Burn-in
+    int burn = 50;                    // Burn-in
     int thin = 5;                       // Thinning
     double sp = (nrun - burn) / thin;   // Number of posterior samples
     double k = 5;                          // Number of factors to start with (for now)
@@ -74,6 +73,11 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
     double ad1 = 2.1, bd1 = 1.;          // Gamma hyper-parameters for delta_1
     double ad2 = 3.1, bd2 = 1.;          // Gamma hyper-parameters delta_h, h >= 2
     double adf = 1., bdf = 1.;           // Gamma hyper-parameters for ad1 and ad2 or df
+
+    arma::mat Lambdaout(p * 12, sp, arma::fill::zeros); // 12 is the max number of latent factors
+    arma::mat Etaout(T * 12, sp, arma::fill::zeros);
+    arma::rowvec Thetaout(2 * q * p, arma::fill::zeros);
+    arma::mat Thetaout_tot; //(sp, 2*q*p, arma::fill::zeros);
 
     // Initial values
 
@@ -382,6 +386,19 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
         auto end_it=std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> it_time = end_it - start_it;
         //std::cout << "iteration: " << i << " took " << it_time.count() << std::endl;
+        if (i % thin == 0 && i>burn ) {
+            // Calcola l'indice della colonna da aggiornare
+            int col_index = (i-burn) / thin;
+
+            arma::colvec add_col = arma::join_vert(arma::vectorise(lambda), arma::zeros<arma::colvec>(p * 12 - p * k));
+            Lambdaout.col(col_index) = add_col;
+
+            arma::colvec add_col2 = arma::join_vert(arma::vectorise(eta), arma::zeros<arma::colvec>(T * 12 - T * k));
+            Etaout.col(col_index) = add_col2;
+
+            Thetaout = arma::reshape(theta,1,p*2*q);
+            Thetaout_tot = arma::join_vert(Thetaout_tot, Thetaout);
+        }
 
     }
     std::unordered_map<std::string, arma::mat> map_matrix;
@@ -392,6 +409,12 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
     map_matrix["W"] = W;
     map_matrix["B_pred"] = B_pred;
     map_matrix["B"] = B;
+    map_matrix["Lambdaout"] = Lambdaout;
+    map_matrix["Thetaout"] = Thetaout;
+    map_matrix["Thetaout_tot"] = Thetaout_tot;
+    map_matrix["Etaout"] = Etaout;
+    map_matrix["thresholds"]=thresholds;
+
 
     for (std::size_t i = 0; i < vars_to_save.size(); ++i) {
         auto it = map_matrix.find(vars_to_save[i]);
@@ -401,7 +424,6 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
         else
             write_matrix(file_path,it->second,it->first);
     }
-    std::cout<<"aiuto"<<std::endl;
     //write_matrix (file_path,W);
     //write_matrix (file_path,lambda);
     //write_matrix (file_path,eta);
@@ -412,8 +434,6 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
     auto final=std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff=final-start;
     std::cout << diff.count() << std::endl;
-    std::cout<<"aiuto2"<<std::endl;
-
     std::cout << "Max number of latent factors reached: " << max_latent_factors << std::endl;
 }
 // [[Rcpp::export]]
