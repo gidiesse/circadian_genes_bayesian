@@ -6,7 +6,7 @@
 %load DesignMatrix.mat;
 
 %%%%%%%%%%% Vedere la variabile ordC: contiene gli indici dei geni identificati
-%%%%%%%%%%% come circadiani dal più probabile al meno probabile. (riga 161)
+%%%%%%%%%%% come circadiani dal più probabile al meno probabile. (riga 159)
 
 % matrici già salvate considerando burnin e thinning:
 thetaout = readmatrix('Thetaout_tot.csv'); %Thetaout_seed_250.csv
@@ -136,13 +136,12 @@ i = 400; %????
 % % % mean(mean(sigmaout(its,:)))
 % % % prctile(mean(sigmaout(its,:)), [2.5, 5, 97.5])
    
-% Computing the probability that the proteins (in per24) is circardian % 
+% Computing the probability that each protein (in per24) is circardian % 
 for h = 1:length(per24)
     j = per24(h);
     %thti = thetaout(its, indicator + j);
     thti = thetaout(:, indicator + j);
     %[mean(thti)' THETA(j,:)']
-    % -- % Computing the probability that the protein (in per24) is circardian % -- % 
     prob(h) = length(find(thti(: , 1) == 0 & thti(: , 2) == 0 & thti(: , 3) == 0 & thti(: , 4) == 0 ...
     & thti(:, 5) == 0 & thti(:, 6) == 0 & thti(:, 7) == 0 & thti(:, 8) == 0 ...
     & thti(:, 9) ~= 0 & thti(:, 10) ~= 0))/(length(its)-1) ; 
@@ -413,8 +412,7 @@ ylabel(['True positive rate'])
 title(['ROC curve as function of kappa - periodic'])
 dlmwrite('ROC.txt', [(1-spec)' sensitivity'], 'delimiter', ' ', 'precision', 6);
 
-%%% PLOT TRAIETTORIE GENI IDENTIFICATI COME CIRCADIANI CON MAGGIORE
-%%% PROBABILITA'
+%%% PLOT TRAIETTORIE GENI IDENTIFICATI COME CIRCADIANI CON MAGGIORE PROBABILITA'
 figure;
 subplot(2,2,1)
 plot(Y(ordC(1),:)) 
@@ -437,7 +435,7 @@ subplot(2,2,4)
 plot(Y(ordC(p),:)) 
 
 
-% 26  geni circadiani
+% 26 geni circadiani
 known_genes = load('row_num_to26.txt');
 % Trova le posizioni del sottoinsieme in ordC
 [~, pos] = ismember(known_genes, ordC);
