@@ -29,7 +29,7 @@ Y = cellfun(@str2double, Y);
 
 q=5; 
 num_righe = size(Thetatilde, 1);  % Numero di righe di Thetatilde
-num_colonne = size(Thetatilde, 2); % Numero di colonne di The tatilde
+num_colonne = size(Thetatilde, 2); % Numero di colonne di The Thetatilde
 THETA = zeros(num_righe, num_colonne); 
 for i = 1:q
   index = find(bsxfun(@hypot, Thetatilde(: , 2*i-1), Thetatilde(:, 2*i)) >= thr1(:, i)); 
