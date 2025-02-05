@@ -9,27 +9,31 @@ void load_matrix (const std::string& file_path, const std::string& file_name, ar
 void load_vector (const std::string& file_path, const std::string& file_name, arma::vec &vec, bool print);
 void load_constant (const std::string& file_path, const std::string& file_name, int num, bool print);
 arma::uvec setdiff(const arma::vec& A, const arma::vec& B);
-void normalizeMatrix(arma::mat& matrix);
 void write_matrix (const std::string& file_path, arma::mat &mat,const std::string& name_csv);
+arma::mat standardizeMatrix(const arma::mat& matrix); 
+arma::mat logTransformation(const arma::mat& inputMatrix);
+
 
 // [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::export]]
-void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::string& file_path,const int nrun,std::vector<std::string> vars_to_save)
+void MCMC_Circadian_Genes(arma::mat Yn, arma::vec t_ij, arma::vec tg, const std::string& file_path,const int nrun,std::vector<std::string> vars_to_save)
 
 {
     auto start=std::chrono::high_resolution_clock::now();
     //std::string file_path = "../Data/";
+  
     arma::arma_rng::set_seed(230518);
-
-    //arma::mat Y;
+    Yn=Yn.t();
+    arma::mat Y1;
+    arma::mat Y;
     //load_matrix(file_path, "Clean_data.csv", Y, false);
 
-    Y.brief_print();
-    normalizeMatrix(Y);
+    Y1=logTransformation(Yn);
+    Y=standardizeMatrix(Y1);
 
     int max_latent_factors = 0;
-    Y=Y.t();
+    
     int p = Y.n_cols;       // p = number of proteins
     int T = Y.n_rows;       // T = number of time points
     std::cout<<p<<std::endl;
@@ -46,7 +50,6 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
     arma::rowvec initial_periods = {8, 12, 16, 20, 24};         // range of periods for fixed basis functions
     //arma::rowvec periods = initial_periods / 2;                 // periods on a unit-based increment
     arma::rowvec full_periods = initial_periods / 48;                   // periods for our time increments
-
     for (size_t h = 0; h < full_periods.n_elem; ++h)
     {
         B.col(2*h) = sin(((2*arma::datum::pi) / (full_periods(h)))*t_ij);
@@ -57,7 +60,7 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
     // Define global constants
     int rep = 1;
     //int nrun = 1000;                   // Number of iteration
-    int burn = 50;                    // Burn-in
+    int burn = 100;                    // Burn-in
     int thin = 5;                       // Thinning
     double sp = (nrun - burn) / thin;   // Number of posterior samples
     double k = 5;                          // Number of factors to start with (for now)
@@ -73,7 +76,7 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
     double ad1 = 2.1, bd1 = 1.;          // Gamma hyper-parameters for delta_1
     double ad2 = 3.1, bd2 = 1.;          // Gamma hyper-parameters delta_h, h >= 2
     double adf = 1., bdf = 1.;           // Gamma hyper-parameters for ad1 and ad2 or df
-
+    std::cout<<"aiuto"<<std::endl;
     arma::mat Lambdaout(p * 12, sp, arma::fill::zeros); // 12 is the max number of latent factors
     arma::mat Etaout(T * 12, sp, arma::fill::zeros);
     arma::rowvec Thetaout(2 * q * p, arma::fill::zeros);
@@ -381,7 +384,7 @@ void MCMC_Circadian_Genes(arma::mat Y, arma::vec t_ij, arma::vec tg, const std::
 
         //std::cerr << "Update adaptive, iteration = " << i << std::endl;
 
-        //std::cout << "i: " << i << std::endl;
+        std::cout << "i: " << i << std::endl;
         //std::cout << "k: " << k << std::endl;
         auto end_it=std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> it_time = end_it - start_it;
@@ -479,18 +482,21 @@ void load_constant (const std::string& file_path, const std::string& file_name, 
         std::cout << num << std::endl;
 }
 // [[Rcpp::export]]
-void normalizeMatrix(arma::mat& matrix) {
-    // Trova il minimo e il massimo valore nella matrice
-    double minVal = matrix.min();
-    double maxVal = matrix.max();
-
-    // Normalizza la matrice usando la formula: (x - min) / (max - min)
-    if (maxVal != minVal) {
-        matrix = (matrix - minVal) / (maxVal - minVal);
-    } else {
-        // Se min == max, rendi tutti gli elementi 0 (o un altro valore a scelta)
-        matrix.fill(0.0);
+arma::mat standardizeMatrix(const arma::mat& matrix) {
+    arma::mat standardized = matrix;
+    
+    for (size_t col = 0; col < matrix.n_cols; ++col) {
+        double mean_value = arma::mean(matrix.col(col));
+        double stddev_value = arma::stddev(matrix.col(col));
+        
+        if (stddev_value != 0) {
+            standardized.col(col) = (matrix.col(col) - mean_value) / stddev_value;
+        } else {
+            std::cout << "Attenzione: deviazione standard nulla nella colonna " << col <<std::endl;
+        }
     }
+    
+    return standardized;
 }
 // [[Rcpp::export]]
 void write_matrix (const std::string& file_path, arma::mat& mat, const std::string& name_csv) {
@@ -514,4 +520,20 @@ void write_matrix (const std::string& file_path, arma::mat& mat, const std::stri
     }
     to_write.close();
     return;
+}
+
+// [[Rcpp::export]]
+arma::mat logTransformation(const arma::mat& inputMatrix) {
+    arma::mat outputMatrix = inputMatrix;  // Copia della matrice originale
+    for (arma::uword i = 0; i < inputMatrix.n_rows; ++i) {
+        for (arma::uword j = 0; j < inputMatrix.n_cols; ++j) {
+            if (inputMatrix(i, j) > 0) {
+                outputMatrix(i, j) = std::log(inputMatrix(i, j));  // Applicazione logaritmo naturale
+            } else {
+                std::cerr << "Errore: elemento non positivo in posizione (" << i << ", " << j << ").\n";
+                outputMatrix(i, j) = arma::datum::nan;  // Assegna NaN se il valore è non positivo
+            }
+        }
+    }
+    return outputMatrix;
 }
