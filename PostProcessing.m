@@ -6,20 +6,21 @@
 %load DesignMatrix.mat;
 
 % matrici già salvate considerando burnin e thinning:
-thetaout = readmatrix('Thetaout_seed_250.csv');  %'Thetaout_seed_250.csv'
-Lambdaout = readmatrix('Lambdaout_seed_250.csv'); %'Lambdaout_seed_250.csv'
-Etaout = readmatrix('Etaout_seed_250.csv');  %'Etaout_seed_250.csv'
-% in queste burnin e thinning non sono considerati:
-Thetatilde = readmatrix('thetatilde_seed_250.csv');  %thetatilde_seed_250.csv
+thetaout = readmatrix('Thetaout_seed_250.csv');  
+Lambdaout = readmatrix('Lambdaout_seed_250.csv'); 
+Etaout = readmatrix('Etaout_seed_250.csv');  
+
+% queste dall'ultimo update del GS (con 10000 iterazioni e 1000 di burnin):
+Thetatilde = readmatrix('thetatilde_seed_250.csv'); 
 B = readmatrix('B_seed_250.csv');
 thr1 = readmatrix('thresholds_seed_250.csv'); 
+
 Y = readmatrix('Y.csv'); 
 
 nrun = 10000; %500; 
 burn = 1000; %20;
 thin = 5;
 its = burn:thin:nrun-1; 
-
 
 q=5; 
 num_righe = size(Thetatilde, 1);  % Numero di righe di Thetatilde
