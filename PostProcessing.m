@@ -165,6 +165,7 @@ ind = 1:p; ind = ind';
 circ_prot = ind(ordC);
 beta = 1 - A_C;
 list = [A_C 1 - A_C ordC];
+true = length(per24); 
 
 % % % Choose a data-dependent kappa % %
 % thr = 0.05; 
@@ -174,10 +175,10 @@ list = [A_C 1 - A_C ordC];
 % circa = ord(find(list(:, 2) <= kappa));               % Proteins identified as circardian
 % 
 % sensitivity = length(find(THETA(circa,1) == 0 & THETA(circa,2) == 0 & THETA(circa,3) == 0 & THETA(circa,4) == 0 & THETA(circa,5) == 0 & ...
-%     THETA(circa,6) == 0 & THETA(circa,7) == 0 & THETA(circa,8) == 0 & THETA(circa,9) ~= 0 & THETA(circa,10) ~= 0)) / 25;
+%     THETA(circa,6) == 0 & THETA(circa,7) == 0 & THETA(circa,8) == 0 & THETA(circa,9) ~= 0 & THETA(circa,10) ~= 0)) / true;
 % 
 % notcirc = setdiff(1:p, circa);              % Proteins not identified as circardian
-% true_not_circ = p - 25;
+% true_not_circ = p - true;
 % % Numb. of not circardian correctly identified as not circardian
 % spec = (length(notcirc) - length(find(THETA(notcirc,1) == 0 & THETA(notcirc,2) == 0 & THETA(notcirc,3) == 0 & ...
 %     THETA(notcirc,4) == 0 & THETA(notcirc,5) == 0 & THETA(notcirc,6) == 0 & THETA(notcirc,7) == 0 ...
@@ -192,9 +193,9 @@ for h = 1:length(vect)
  kappa = vect(h);
  circa = ordC(find(list(:, 2) <= kappa));     % Proteins identified as circardian
  sensitivity(h) = length(find(THETA(circa,1) == 0 & THETA(circa,2) == 0 & THETA(circa,3) == 0 & THETA(circa,4) == 0 & THETA(circa,5) == 0 & ...
-    THETA(circa,6) == 0 & THETA(circa,7) == 0 & THETA(circa,8) == 0 & THETA(circa,9) ~= 0 & THETA(circa,10) ~= 0)) / 25;
+    THETA(circa,6) == 0 & THETA(circa,7) == 0 & THETA(circa,8) == 0 & THETA(circa,9) ~= 0 & THETA(circa,10) ~= 0)) / true;
  notcirc = setdiff(1:p, circa);             % Proteins not identified as circardian
- true_not_circ = p - 25;
+ true_not_circ = p - true;
  spec(h) = (length(notcirc) - length(find(THETA(notcirc,1) == 0 & THETA(notcirc,2) == 0 & THETA(notcirc,3) == 0 & ...
     THETA(notcirc,4) == 0 & THETA(notcirc,5) == 0 & THETA(notcirc,6) == 0 & THETA(notcirc,7) == 0 ...
     & THETA(notcirc,8) == 0 & THETA(notcirc,9) ~= 0 & THETA(notcirc,10) ~= 0))) / true_not_circ;       
