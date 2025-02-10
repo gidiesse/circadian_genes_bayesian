@@ -11,33 +11,33 @@ Lambdaout = readmatrix('Lambdaout_seed_250.csv');
 Etaout = readmatrix('Etaout_seed_250.csv');  
 
 % queste dall'ultimo update del GS (con 10000 iterazioni e 1000 di burnin):
-Thetatilde = readmatrix('thetatilde_seed_250.csv'); 
-B = readmatrix('B_seed_250.csv');
-thr1 = readmatrix('thresholds_seed_250.csv'); 
+%Thetatilde = readmatrix('thetatilde_seed_250.csv'); 
+%B = readmatrix('B_seed_250.csv');
+%thr1 = readmatrix('thresholds_seed_250.csv'); 
 
-Y = readmatrix('Y.csv'); 
+%Y = readmatrix('Y.csv'); 
 
 nrun = 10000; %500; 
 burn = 1000; %20;
 thin = 5;
 its = burn:thin:nrun-1; 
 
-q=5; 
-num_righe = size(Thetatilde, 1);  % Numero di righe di Thetatilde
-num_colonne = size(Thetatilde, 2); % Numero di colonne di The tatilde
-THETA = zeros(num_righe, num_colonne); 
-for i = 1:q
-  index = find(bsxfun(@hypot, Thetatilde(: , 2*i-1), Thetatilde(:, 2*i)) >= thr1(:, i)); 
-  if ~isempty(index)
-    THETA(index, [2*i - 1 2*i]) = Thetatilde(index, [2*i - 1 2*i]);  
-  end
-end
-
+%%% bisogna lanciare prima SyntheticData.m per prendere i "per24" (i.e. i veri geni circadiani) 
+%q=5; 
+%num_righe = size(Thetatilde, 1);  % Numero di righe di Thetatilde
+%num_colonne = size(Thetatilde, 2); % Numero di colonne di The tatilde
+%THETA = zeros(num_righe, num_colonne); 
+%for i = 1:q
+%  index = find(bsxfun(@hypot, Thetatilde(: , 2*i-1), Thetatilde(:, 2*i)) >= thr1(:, i)); 
+%  if ~isempty(index)
+%    THETA(index, [2*i - 1 2*i]) = Thetatilde(index, [2*i - 1 2*i]);  
+%  end
+%end
 % The following counts how many genes exhibit 24 hours periodicity
 % (matrices from the last update of GS)
-per24 = find(THETA(: , 1) == 0 & THETA(: , 2) == 0 & THETA(: , 3) == 0 & THETA(: , 4) == 0 ...
-    & THETA(:, 5) == 0 & THETA(:, 6) == 0 & THETA(:, 7) == 0 & THETA(:, 8) == 0 ...
-    & THETA(:, 9) ~= 0 & THETA(:, 10) ~= 0) ; length(per24) 
+%per24 = find(THETA(: , 1) == 0 & THETA(: , 2) == 0 & THETA(: , 3) == 0 & THETA(: , 4) == 0 ...
+%    & THETA(:, 5) == 0 & THETA(:, 6) == 0 & THETA(:, 7) == 0 & THETA(:, 8) == 0 ...
+%    & THETA(:, 9) ~= 0 & THETA(:, 10) ~= 0) ; length(per24) 
 
 p = 500;                                    % Number of simulated protein profiles ( = number of genes)
 T = 24;                                     % Number of observations per profile 
