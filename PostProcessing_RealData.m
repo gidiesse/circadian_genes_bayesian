@@ -6,30 +6,37 @@
 %load DesignMatrix.mat;
 
 %%%%%%%%%%% Vedere la variabile ordC: contiene gli indici dei geni identificati
-%%%%%%%%%%% come circadiani dal più probabile al meno probabile. (riga 159)
+%%%%%%%%%%% come circadiani dal più probabile al meno probabile. (riga 161)
 
 % matrici già salvate considerando burnin e thinning:
 thetaout = readmatrix('Thetaout_tot.csv'); %Thetaout_seed_250.csv
 Lambdaout = readmatrix('Lambdaout.csv'); %Lambdaout_seed_250.csv
 Etaout = readmatrix('Etaout.csv');  %Etaout_seed_250.csv
-
+% in queste burnin e thinning non sono considerati:
+Thetatilde = readmatrix('theta_tilde.csv'); 
 B = readmatrix('B.csv');
-Thetatilde = readmatrix('theta_tilde.csv'); % matrice data dall'ultimo update dell'MCMC
-thr1 = readmatrix('thresholds.csv'); % matrice data dall'ultimo update dell'MCMC
+thr1 = readmatrix('thresholds.csv'); 
 
+%data=readmatrix('Yreal.csv');
 % Leggi il file come una tabella
-opts = detectImportOptions('Yreal.csv', 'Delimiter', ',');  % Modifica il delimitatore se necessario
-dataTable = readtable('Yreal.csv', opts);
+opts = detectImportOptions('5k_genes.csv', 'Delimiter', ',');  % Modifica il delimitatore se necessario
+dataTable = readtable('5k_genes.csv', opts);
 % Converti la tabella in una matrice numerica
 Y = table2array(dataTable);
-Y(:, 1) = [];  % Elimina la prima colonna
-Y(1,:) = []; % Elimina riga di indici
-Y = cellfun(@str2double, Y);
+%Y(:, 1) = [];  % Elimina la prima colonna
+%Y(1,:) = []; % Elimina riga di indici
+%Y = cellfun(@str2double, Y); 
+%standardize Y
+Y=Y';
+Y_standardized = (Y - mean(Y)) ./ std(Y);
 
+% 26  geni circadiani
+known_genes = load('indices_of_circadian_genes.txt');
+per24=known_genes;
 
 q=5; 
 num_righe = size(Thetatilde, 1);  % Numero di righe di Thetatilde
-num_colonne = size(Thetatilde, 2); % Numero di colonne di The Thetatilde
+num_colonne = size(Thetatilde, 2); % Numero di colonne di The tatilde
 THETA = zeros(num_righe, num_colonne); 
 for i = 1:q
   index = find(bsxfun(@hypot, Thetatilde(: , 2*i-1), Thetatilde(:, 2*i)) >= thr1(:, i)); 
@@ -37,20 +44,20 @@ for i = 1:q
     THETA(index, [2*i - 1 2*i]) = Thetatilde(index, [2*i - 1 2*i]);  
   end
 end
-
-% The following counts how many genes exhibit 24 hours periodicity
-% (matrices from the last update of GS)
-per24 = find(THETA(: , 1) == 0 & THETA(: , 2) == 0 & THETA(: , 3) == 0 & THETA(: , 4) == 0 ...
-    & THETA(:, 5) == 0 & THETA(:, 6) == 0 & THETA(:, 7) == 0 & THETA(:, 8) == 0 ...
-    & THETA(:, 9) ~= 0 & THETA(:, 10) ~= 0) ; length(per24) 
+% 
+% % The following counts how many genes exhibit 24 hours periodicity
+% % (matrices from the last update of GS)
+% per24 = find(THETA(: , 1) == 0 & THETA(: , 2) == 0 & THETA(: , 3) == 0 & THETA(: , 4) == 0 ...
+%     & THETA(:, 5) == 0 & THETA(:, 6) == 0 & THETA(:, 7) == 0 & THETA(:, 8) == 0 ...
+%     & THETA(:, 9) ~= 0 & THETA(:, 10) ~= 0) ; length(per24) 
 
 true = 26; % This number has to be verified (??) 
-nrun = 500; %500;
-burn = 50; %20;
+nrun = 10000; %500;
+burn = 1000; %20;
 thin = 5;
 its = burn:thin:nrun-1; 
-p = size(Y, 1);
-T=size(Y, 2);
+p = size(Y, 2);
+T=size(Y, 1);
 cnt = 0; 
 ib = sort(per24);
 indicator = 0:p:(p*2*q-p); %0:500:4500;
@@ -58,11 +65,12 @@ indicatorLambda = 0:p:(12-1)*p;
 aperiodic = zeros(length(its)-1, T);
 
 figure;
+l=[1,2,5,8,13,19];
 % Code to plot curves
-for h = 1:25
+for h = l
    i = ib(h); 
    cnt = cnt + 1;
-   subplot(5,5,cnt) 
+   subplot(2,3,cnt) 
    %thti = thetaout(its, indicator + i); 
    thti = thetaout(:, indicator + i); %considero tutte le righe perchè matrici già salvate con burnin+thinning
    % ghti = gammaout(its, indicator + i);
@@ -77,15 +85,75 @@ for h = 1:25
    est(:,2:3) = prctile(Eyi,[2.5 97.5])';  
    tij = linspace(0, 48, 13);
    % 95% pointwise credible interval
-   plot(tij, Y(i,:),'o', 'Color', 'k', 'MarkerSize',4) %tij.*46
+   plot(tij, Y_standardized(:,i),'o', 'Color', 'k', 'MarkerSize',4) %tij.*46
    xlabel(['Time (hours)'])
    xlim([0 48])
    title(['Gene ' num2str(i)])
-   line(tij, Y(i,:),'LineStyle', '-','Color', 'k','LineWidth', 1.5 ) %tij.*46
+   line(tij, Y_standardized(:,i),'LineStyle', '-','Color', 'k','LineWidth', 1.5 ) %tij.*46
    line(tij, est(:,1),'LineStyle', '-','Color', 'blue','LineWidth', 1.5)        % posterior mean estimate
    line(tij, est(:,2),'LineStyle','--', 'Color', 'red', 'LineWidth',1)          % 99% pointwise intervals
    line(tij, est(:,3),'LineStyle','--','Color', 'red','LineWidth',1)
 end
+
+figure;
+hold on;
+ % Itera su ogni componente del vettore (colonna)
+plot(1:size(Eyi, 1), Eyi(:, 2), 'LineWidth', 1.5, 'DisplayName', ['Componente ' num2str(2)]);
+hold off;
+
+% Aggiunta di etichette e legenda
+xlabel('Iterazioni');
+ylabel('Valore dei componenti');
+title('Traceplot dei componenti del vettore campionato');
+legend('show');
+grid on;
+figure;
+hold on;
+ % Itera su ogni componente del vettore (colonna)
+plot(1:size(Eyi, 1), Eyi(:, 13), 'LineWidth', 1.5, 'DisplayName', ['Time point ' num2str(13)]);
+hold off;
+
+% Aggiunta di etichette e legenda
+xlabel('Iteration');
+ylabel('Value');
+legend('show');
+grid on;
+figure;
+hold on;
+ % Itera su ogni componente del vettore (colonna)
+plot(1:size(Eyi, 1), Eyi(:, 11), 'LineWidth', 1.5, 'DisplayName', ['Componente ' num2str(11)]);
+hold off;
+
+% Aggiunta di etichette e legenda
+xlabel('Iterazioni');
+ylabel('Valore dei componenti');
+title('Traceplot dei componenti del vettore campionato');
+legend('show');
+grid on;
+figure;
+hold on;
+ % Itera su ogni componente del vettore (colonna)
+plot(1:size(Eyi, 1), Eyi(:, 13), 'LineWidth', 1.5, 'DisplayName', ['Componente ' num2str(13)]);
+hold off;
+
+% Aggiunta di etichette e legenda
+xlabel('Iterazioni');
+ylabel('Valore dei componenti');
+title('Traceplot dei componenti del vettore campionato');
+legend('show');
+grid on;
+figure;
+hold on;
+ % Itera su ogni componente del vettore (colonna)
+plot(1:size(Etaout, 1), Etaout(:, 26), 'LineWidth', 1.5, 'DisplayName', ['Componente ' num2str(26)]);
+hold off;
+
+% Aggiunta di etichette e legenda
+xlabel('Iterazioni');
+ylabel('Valore dei componenti');
+title('Traceplot dei componenti del vettore campionato');
+legend('show');
+grid on;
 
 % NO IDEA WHAT THIS DOES 
 for h = 1:length(per24)
@@ -110,7 +178,7 @@ i = 400; %????
        %aperiodic(l, :) = reshape(Etaout(:, its(l)), T, 15)*Lambdaout(indicatorLambda + i, its(l));
        aperiodic(l, :) = reshape(Etaout(:, l), T, 12)*Lambdaout(indicatorLambda + i, l);
    end
-[mean(thti)' THETA(i,:)']
+%[mean(thti)' THETA(i,:)']
 % [mean(ghti)' Gamma(i,:)']
 %[mean(aperiodic)' (Etaout * Lambdaout(i,:)') abs(mean(aperiodic)') - abs(Etaout * Lambdaout(i,:)')]
 
@@ -136,12 +204,13 @@ i = 400; %????
 % % % mean(mean(sigmaout(its,:)))
 % % % prctile(mean(sigmaout(its,:)), [2.5, 5, 97.5])
    
-% Computing the probability that each protein (in per24) is circardian % 
+% Computing the probability that the proteins (in per24) is circardian % 
 for h = 1:length(per24)
     j = per24(h);
     %thti = thetaout(its, indicator + j);
     thti = thetaout(:, indicator + j);
     %[mean(thti)' THETA(j,:)']
+    % -- % Computing the probability that the protein (in per24) is circardian % -- % 
     prob(h) = length(find(thti(: , 1) == 0 & thti(: , 2) == 0 & thti(: , 3) == 0 & thti(: , 4) == 0 ...
     & thti(:, 5) == 0 & thti(:, 6) == 0 & thti(:, 7) == 0 & thti(:, 8) == 0 ...
     & thti(:, 9) ~= 0 & thti(:, 10) ~= 0))/(length(its)-1) ; 
@@ -168,7 +237,7 @@ for h = 1:p
 end
 
 ind = 1:p; ind = ind';
-[A_C ordC ] = sort(circardian', 'descend'); %A_C=probabilità ordinate di essere un gene circadiano, ordC=indice originale corrispondente
+[A_C ordC ] = sort(circardian', 'descend'); %A=probabilità ordinate di essere un gene periodico, ordC=indice originale corrispondente
 circ_prot = ind(ordC);
 beta = 1 - A_C;
 list = [A_C 1 - A_C ordC];
@@ -191,7 +260,7 @@ list = [A_C 1 - A_C ordC];
 %     & THETA(notcirc,8) == 0 & THETA(notcirc,9) ~= 0 & THETA(notcirc,10) ~= 0))) / true_not_circ;      
 % 
 
-% % ROC curve as function of different values of kappa % %
+% ROC curve as function of different values of kappa % %
 vect = 0:.005:1;
 sensitivity=zeros(1,length(vect));
 spec=zeros(1,length(vect));
@@ -206,6 +275,7 @@ for h = 1:length(vect)
     THETA(notcirc,4) == 0 & THETA(notcirc,5) == 0 & THETA(notcirc,6) == 0 & THETA(notcirc,7) == 0 ...
     & THETA(notcirc,8) == 0 & THETA(notcirc,9) ~= 0 & THETA(notcirc,10) ~= 0))) / true_not_circ;       
 end
+
 figure;
 plot(1 - spec, sensitivity)
 xlim([0, 1])
@@ -412,31 +482,38 @@ ylabel(['True positive rate'])
 title(['ROC curve as function of kappa - periodic'])
 dlmwrite('ROC.txt', [(1-spec)' sensitivity'], 'delimiter', ' ', 'precision', 6);
 
-%%% PLOT TRAIETTORIE GENI IDENTIFICATI COME CIRCADIANI CON MAGGIORE PROBABILITA'
+%%% PLOT TRAIETTORIE GENI IDENTIFICATI COME CIRCADIANI CON MAGGIORE
+%%% PROBABILITA'
 figure;
 subplot(2,2,1)
-plot(Y(ordC(1),:)) 
+plot(Y(:,ordC(1))) 
+title('Gene ID 246659 - Probability: 0.999')
 subplot(2,2,2)
-plot(Y(ordC(2),:)) 
+plot(Y(:,ordC(2))) 
+title('Gene ID 244933 - Probability: 0.997')
 subplot(2,2,3)
-plot(Y(ordC(3),:)) 
+plot(Y(:,ordC(3))) 
+title('Gene ID 249540 - Probability: 0.996')
 subplot(2,2,4)
-plot(Y(ordC(4),:)) 
-
+plot(Y(:,ordC(4))) 
+title('Gene ID 249088 - Probability: 0.994 ')
 %%% PLOT TRAIETTORIE GENI CON BASSE PROBABILITA' DI ESSERE CIRCADIANI
 figure;
 subplot(2,2,1)
-plot(Y(ordC(p-3),:)) 
+plot(Y(:,ordC(p-3))) 
+title('Gene ID 249882 - Probability: 0.00')
 subplot(2,2,2)
-plot(Y(ordC(p-2),:)) 
+plot(Y(:,ordC(p-2)))
+title('Gene ID 249788 - Probability: 0.00')
 subplot(2,2,3)
-plot(Y(ordC(p-1),:)) 
+plot(Y(:,ordC(p-1)))
+title('Gene ID 249786 - Probability: 0.00')
 subplot(2,2,4)
-plot(Y(ordC(p),:)) 
+plot(Y(:,ordC(p))) 
+title('Gene ID 249774 - Probability: 0.00')
 
-
-% 26 geni circadiani
-known_genes = load('row_num_to26.txt');
+% 26  geni circadiani
+known_genes = load('indices_of_circadian_genes.txt');
 % Trova le posizioni del sottoinsieme in ordC
 [~, pos] = ismember(known_genes, ordC);
 disp('indici dei 26 geni nel vettore ordC:');
