@@ -38,7 +38,7 @@ Sys.setenv(PKG_CXX11FLAGS = "-O3 -march=native")
 ```
 After running this line of code you now can run the MCMC code on R using the following function "MCMC_Circadian_Genes" which need in Input the matrix of the Gene expression with genes on row and time points in the column, the vector of timepoints "tij" the vectors tg,the path where you want to save the code,number of iterations, a vector of strings that tells which parameter we are interested, and Burn-in. This code will save in the File path you declared the matrix and the vector you need for your post processing. Look for an example on the R file Wrapper on GitHub repository.
 
-With MCMC_C_version you can run the code directly on C++ using synthetic data, Pay attention that in the row from 437 to 442 in "" you have to write your path where you want to save your Matrix for the post processing. The following line is an example for windows user
+With MCMC_C_version, you can run the code directly in C++ using synthetic data. Please note that in lines 437 to 442, you need to specify the path where you want to save your matrix for post-processing. The following line is an example for Windows users.
 ```
 "C:\Users\NomeUtente\Documenti\file.csv"
 ```
