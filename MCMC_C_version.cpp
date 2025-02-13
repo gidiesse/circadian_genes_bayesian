@@ -97,6 +97,13 @@ int main()
     double ad2 = 3.1, bd2 = 1.;          // Gamma hyper-parameters delta_h, h >= 2
     double adf = 1., bdf = 1.;           // Gamma hyper-parameters for ad1 and ad2 or df
 
+
+    arma::mat Lambdaout(p * 12, sp, arma::fill::zeros); // 12 is the max number of latent factors
+    arma::mat Etaout(T * 12, sp, arma::fill::zeros);
+    arma::rowvec Thetaout(2 * q * p, arma::fill::zeros);
+    arma::mat Thetaout_tot; //(sp, 2*q*p, arma::fill::zeros);
+
+
     // Initial values
 
     // scalar_type s = randg<scalar_type>( distr_param(a,b) ), where scalar_type is either float or double
@@ -397,6 +404,22 @@ int main()
         std::cout << "number of latent factors is: " << k << std::endl; 
         auto end_it=std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> it_time = end_it - start_it;
+
+
+        // Save sampled values (after thinning)
+        if (i % thin == 0 && i>burn ) {
+        // Calcola l'indice della colonna da aggiornare
+        int col_index = (i-burn) / thin;
+        
+        arma::colvec add_col = arma::join_vert(arma::vectorise(lambda), arma::zeros<arma::colvec>(p * 12 - p * k));
+        Lambdaout.col(col_index) = add_col;
+        
+        arma::colvec add_col2 = arma::join_vert(arma::vectorise(eta), arma::zeros<arma::colvec>(T * 12 - T * k));
+        Etaout.col(col_index) = add_col2;
+        
+        Thetaout = arma::reshape(theta,1,p*2*q);
+        Thetaout_tot = arma::join_vert(Thetaout_tot, Thetaout);
+        }
         
 
 
@@ -406,9 +429,18 @@ int main()
     std::chrono::duration<double> diff=final-start;
 
     std::cout << "Max number of latent factors reached: " << max_latent_factors << std::endl; 
-
-    write_matrix ("/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/c++_results/eta_seed_250.csv", eta); 
-    write_matrix ("/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/c++_results/lambda_seed_250.csv", lambda); 
+    
+    //in the "" write the path where you want to save your data
+    //This is an Example for Windows user "C:\Users\NomeUtente\Documenti\file.csv"
+    //This in an example for Linux/Mac user "/home/nomeutente/documenti/file.csv"
+    
+    vec=c('Thetaout_tot','Lambdaout','Etaout','theta_tilde','thresholds','B') 
+    write_matrix ("", Thetaout_tot); 
+    write_matrix ("", Lambdaout); 
+    write_matrix ("", Etaout); 
+    write_matrix ("", theta_tilde); 
+    write_matrix ("", thresholds); 
+    write_matrix ("", B); 
    
     return 0;
 }
