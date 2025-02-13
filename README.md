@@ -36,7 +36,7 @@ and then you have to have the functions of the cpp on your device you have to ru
 sourceCpp("MCMC.cpp")
 Sys.setenv(PKG_CXX11FLAGS = "-O3 -march=native")
 ```
-After running this line of code you now can run the MCMC code on R using the following function "MCMC_Circadian_Genes" which need in Input the matrix of the Gene expression with genes on row and time points in the column, the vector of timepoints "tij" the vectors tg,the path where you want to save the code,number of iterations, a vector of strings that tells which parameter we are interested, and Burn-in. This code will save in the File path you declared the matrix and the vector you need for your post processing. Look for an example on the R file Wrapper on GitHub repository.
+After running this line of code you now can run the MCMC code on R using the following function "MCMC_Circadian_Genes" which need in Input the matrix of the Gene expression with genes on rows and time points on columns, the vector of timepoints "tij", the vectors tg, the path where you want to save the code, the number of iterations, a vector of strings that tells which parameters we are interested in, and Burn-in. This code will save, in the File path you declared, the matrix and the vector you need for your post processing. Look for an example on the R file Wrapper on GitHub repository.
 
 ---
 
@@ -44,7 +44,7 @@ With MCMC_C_version, you can run the code directly in C++ using synthetic data. 
 ```
 "C:\Users\NomeUtente\Documenti\file.csv"
 ```
-While this is an example for Mac/Linux user
+While this is an example for Mac/Linux users
 ```
 /home/nomeutente/documenti/file.csv
 ```
