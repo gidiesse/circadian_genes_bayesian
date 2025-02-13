@@ -16,8 +16,6 @@ void write_matrix (const std::string& file_path, arma::mat &mat);
 int main()
 {
     auto start=std::chrono::high_resolution_clock::now();
-    std::string file_path = "../Data/";
-    std::string file_path_data = "/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/Data";
     arma::arma_rng::set_seed(250);
 
     arma::mat Y;
