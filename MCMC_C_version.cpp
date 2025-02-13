@@ -16,39 +16,10 @@ void write_matrix (const std::string& file_path, arma::mat &mat);
 int main()
 {
     auto start=std::chrono::high_resolution_clock::now();
-    std::string file_path = "../Data/";
-    std::string file_path_data = "/Users/giuliadesanctis/Desktop/POLIMI/mag_4_SEM_39/Bayesian/Progetto/Data";
     arma::arma_rng::set_seed(250);
 
     arma::mat Y;
     load_matrix(file_path, "Y.csv", Y, false);
-
-    // Questa sezione l'avevo scritta per caricare i dati sintetici da Matlab, per ora la lascio commentata perchè potrebbe riservire
-    // We load all the data except one thing, so that everything except for one thing is kept constant
-    /* 
-    arma::mat B_synth;
-    load_matrix(file_path_data, "B.csv", B_synth, false);
-    arma::mat B_pred_synth; 
-    load_matrix(file_path_data, "Bpred.csv", B_pred_synth, false);
-    arma::mat eta_synth; 
-    load_matrix(file_path_data, "eta.csv", eta_synth, false);
-    arma::mat lambda_synth;
-    load_matrix(file_path_data, "lambda.csv", lambda_synth, false);
-    arma::vec tg_synth;
-    load_vector(file_path_data, "tg.csv", tg_synth, false);
-    arma::mat theta_synth; 
-    load_matrix(file_path_data, "THETA.csv", theta_synth, false);
-    arma::mat theta_tilde_synth;
-    load_matrix(file_path_data, "Thetatilde.csv", theta_tilde_synth, false);
-    arma::mat thresholds_synth;
-    load_matrix(file_path_data, "thr1.csv", thresholds_synth, false);
-    arma::vec t_ij_synth;
-    load_vector(file_path_data, "tij.csv", t_ij_synth, false);
-    arma::mat W_synth; 
-    load_matrix(file_path_data, "W.csv", W_synth, false);
-
-    std::cout << " All the data has been loaded correctly " << std::endl;  
-    */
 
     int max_latent_factors = 0; 
 
