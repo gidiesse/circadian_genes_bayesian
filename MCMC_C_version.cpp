@@ -17,6 +17,7 @@ int main()
 {
     auto start=std::chrono::high_resolution_clock::now();
     arma::arma_rng::set_seed(250);
+    std::string file_path="";
 
     arma::mat Y;
     load_matrix(file_path, "Y.csv", Y, false);
