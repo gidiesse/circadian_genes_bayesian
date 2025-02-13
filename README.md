@@ -34,7 +34,7 @@ For an example, refer to the Wrapper R file in the GitHub repository.
 
 ---
 
-With MCMC_C_version, you can run the code directly in C++ using synthetic data. Please note that in lines 408 to 413, you need to specify the path where you want to save your matrix for post-processing. The following line is an example for Windows users.
+With MCMC_C_version, you can run the code directly in C++ using synthetic data. Please note that in lines 408 to 413, you need to specify the path where you want to save your matrix for post-processing. Moreover in lines 53 to 55, you can choose the number of iterations, burn-in and thinning. The following line is an example for Windows users.
 ```
 "C:\Users\NomeUtente\Documenti\file.csv"
 ```
