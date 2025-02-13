@@ -433,8 +433,7 @@ int main()
     //in the "" write the path where you want to save your data
     //This is an Example for Windows user "C:\Users\NomeUtente\Documenti\file.csv"
     //This in an example for Linux/Mac user "/home/nomeutente/documenti/file.csv"
-    
-    vec=c('Thetaout_tot','Lambdaout','Etaout','theta_tilde','thresholds','B') 
+
     write_matrix ("", Thetaout_tot); 
     write_matrix ("", Lambdaout); 
     write_matrix ("", Etaout); 
