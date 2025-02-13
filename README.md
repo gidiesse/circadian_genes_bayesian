@@ -26,12 +26,12 @@ bash launch_program.sh
 ```
 This script will take care of building the program and launching the executable! 
 
-To use the code in R, you have to download from the repository the MCMC.cpp code and positioned it into your working directory folder. After you can make it works in R  installing the libraries Rcpp and Rcpparmadillo locally on your device
+To use the code in R, you need to download the MCMC.cpp file from the repository and place it in your working directory. After that, you can make it work in R by installing the Rcpp and RcppArmadillo libraries locally on your device.
 ```
 install.packages(Rcpp)
 install.packages(Rcpparmadillo)
 ```
-and then you have to have the functions of the cpp on your device you have to run the following code 
+Now you have to execute the following code: 
 ```
 sourceCpp("MCMC.cpp")
 Sys.setenv(PKG_CXX11FLAGS = "-O3 -march=native")
