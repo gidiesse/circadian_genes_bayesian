@@ -5,7 +5,7 @@ sourceCpp("MCMC.cpp")#there we load the c++ file in R
 #Pay attention to have this file on the same working directory
 Sys.setenv(PKG_CXX11FLAGS = "-O3 -march=native") #this makes c++ code faster 
 #You must use comma notation for decimal representation for data, 
-#and must have time points on column and genes on the row 
+#and must have time points on the columns and genes on the rows 
 #pay attention when you load
 data <- data.frame(data)
 clean_data <- data
